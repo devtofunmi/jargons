@@ -182,19 +182,31 @@ export const pullRequests = pgTable('pull_requests', {
     .defaultNow(),
 })
 
-export const reviewRuns = pgTable('review_runs', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  pullRequestId: uuid('pull_request_id')
-    .notNull()
-    .references(() => pullRequests.id, { onDelete: 'cascade' }),
-  status: reviewRunStatus('status').notNull().default('queued'),
-  filesChanged: integer('files_changed').notNull().default(0),
-  startedAt: timestamp('started_at', { withTimezone: true }),
-  completedAt: timestamp('completed_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
+export const reviewRuns = pgTable(
+  'review_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pullRequestId: uuid('pull_request_id')
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: 'cascade' }),
+    headSha: text('head_sha'),
+    status: reviewRunStatus('status').notNull().default('queued'),
+    filesChanged: integer('files_changed').notNull().default(0),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    // One review run per commit: repeated or concurrent webhook deliveries for
+    // the same head SHA collide here instead of spawning duplicate reviews.
+    pullRequestShaIdx: uniqueIndex('review_runs_pull_request_sha_idx').on(
+      table.pullRequestId,
+      table.headSha,
+    ),
+  }),
+)
 
 export const findings = pgTable('findings', {
   id: uuid('id').primaryKey().defaultRandom(),
