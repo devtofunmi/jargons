@@ -120,14 +120,14 @@ function RepositoriesPage() {
           ) : null}
 
           {totalPages > 1 ? (
-            <div className="mt-2 flex items-center justify-between gap-4">
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="font-mono text-[10px] text-zinc-600">
                 page {currentPage} of {totalPages} ·{' '}
                 {filteredRepositories.length} repositories
               </p>
               <div className="flex items-center gap-2">
                 <button
-                  className="button-secondary px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="button-secondary flex-1 justify-center px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                   disabled={currentPage === 1}
                   onClick={() => setPage(currentPage - 1)}
                 >
@@ -135,7 +135,7 @@ function RepositoriesPage() {
                   Prev
                 </button>
                 <button
-                  className="button-secondary px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="button-secondary flex-1 justify-center px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
                   disabled={currentPage === totalPages}
                   onClick={() => setPage(currentPage + 1)}
                 >
