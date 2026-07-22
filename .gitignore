@@ -11,3 +11,6 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+
+# Claude Code local tooling (settings, isolated worktrees)
+.claude/
