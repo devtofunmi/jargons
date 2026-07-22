@@ -118,16 +118,16 @@ function Dashboard() {
         </article>
 
         <article className="app-card p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Radar className="size-4 text-cyan-300" />
-              <h2 className="text-lg font-medium tracking-[-0.03em]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Radar className="size-4 shrink-0 text-cyan-300" />
+              <h2 className="truncate text-lg font-medium tracking-[-0.03em]">
                 Connected repositories
               </h2>
             </div>
             {hasRepositories ? (
               <Link
-                className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-zinc-200"
+                className="inline-flex shrink-0 items-center gap-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-zinc-200"
                 to="/app/repositories"
               >
                 View all
