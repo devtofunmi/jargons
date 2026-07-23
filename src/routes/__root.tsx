@@ -26,6 +26,58 @@ export const Route = createRootRoute({
         name: 'theme-color',
         content: '#080809',
       },
+      // Open Graph (WhatsApp, LinkedIn, Facebook, Slack, Discord)
+      {
+        property: 'og:type',
+        content: 'website',
+      },
+      {
+        property: 'og:url',
+        content: 'https://jargonsai.vercel.app',
+      },
+      {
+        property: 'og:title',
+        content: 'Jargons — AI code review that gets your code',
+      },
+      {
+        property: 'og:description',
+        content:
+          'Jargons reviews pull requests, catches real issues, and leaves thoughtful feedback so your team can ship better code.',
+      },
+      {
+        property: 'og:image',
+        content: 'https://jargonsai.vercel.app/logo512.png',
+      },
+      {
+        property: 'og:image:width',
+        content: '512',
+      },
+      {
+        property: 'og:image:height',
+        content: '512',
+      },
+      {
+        property: 'og:image:alt',
+        content: 'Jargons logo',
+      },
+      // Twitter / X Card
+      {
+        name: 'twitter:card',
+        content: 'summary',
+      },
+      {
+        name: 'twitter:title',
+        content: 'Jargons — AI code review that gets your code',
+      },
+      {
+        name: 'twitter:description',
+        content:
+          'Jargons reviews pull requests, catches real issues, and leaves thoughtful feedback so your team can ship better code.',
+      },
+      {
+        name: 'twitter:image',
+        content: 'https://jargonsai.vercel.app/logo512.png',
+      },
     ],
     links: [
       {
