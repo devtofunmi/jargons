@@ -29,10 +29,26 @@ function PrivacyPage() {
 
       <ContentSection heading="How we use it">
         <p>
-          To review a pull request or scan a codebase, we send the relevant
-          diffs and file contents to our large language model provider, which
-          returns the findings and suggested fixes. We use this only to produce
-          the review you requested — your code is not used to train models.
+          To review a pull request or scan a codebase, Jargons sends the
+          relevant diffs and file contents to our large language model provider
+          (currently Google Gemini) to generate the findings and suggested fixes.
+          Jargons itself does not retain your source code beyond producing the
+          review, and does not use it to train any model.
+        </p>
+        <p>
+          Your content is processed by Google under the{' '}
+          <a
+            className="text-amber-300 underline-offset-4 hover:underline"
+            href="https://ai.google.dev/gemini-api/terms"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Gemini API terms
+          </a>
+          . Jargons currently uses the free tier of the Gemini API, under which
+          Google may retain content and use it to improve its services —
+          including review by human reviewers — as described in those terms. We
+          do not send your code to any other third party.
         </p>
       </ContentSection>
 
@@ -46,13 +62,25 @@ function PrivacyPage() {
         </p>
       </ContentSection>
 
+      <ContentSection heading="Observability">
+        <p>
+          Jargons instruments its review agent with OpenTelemetry and sends
+          traces and metrics to SigNoz, which powers the Agent Health dashboard —
+          run counts, latency, throughput, and token and cost usage. This
+          telemetry describes how the agent performs and contains operational
+          metadata only: model names, repository names, pull request and run
+          identifiers, timings, token counts, cost, and finding counts. It never
+          includes your source code, diffs, or the review text.
+        </p>
+      </ContentSection>
+
       <ContentSection heading="Third parties">
         <p>
-          Jargons relies on GitHub (source hosting and identity), a large
-          language model provider (to generate reviews), and an
-          OpenTelemetry-compatible observability backend (to monitor the agent's
-          health and cost). Each processes data only to provide its part of the
-          service.
+          Jargons relies on GitHub (source hosting and identity), Google Gemini
+          (to generate reviews and fixes), and SigNoz (OpenTelemetry-based
+          observability). Each processes data only to provide its part of the
+          service, and only SigNoz's operational metadata — not your code — is
+          used for monitoring.
         </p>
       </ContentSection>
 
