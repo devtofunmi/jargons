@@ -14,3 +14,8 @@ todos.json
 
 # Claude Code local tooling (settings, isolated worktrees)
 .claude/
+
+# IDE and CLI config
+.vscode/
+.cta.json
+
