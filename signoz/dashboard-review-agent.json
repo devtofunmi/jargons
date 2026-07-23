@@ -1,0 +1,360 @@
+{
+  "title": "Jargons — Agent Health",
+  "description": "Health of the Jargons AI agent: pull request reviews and codebase scans — throughput, latency, LLM token/cost usage, findings, and failures. Metrics emitted by the agent pipeline (service: jargons-review-agent).",
+  "tags": ["jargons", "ai-agent", "review", "scan"],
+  "variables": {},
+  "layout": [
+    { "i": "reviews-rate", "x": 0, "y": 0, "w": 6, "h": 6 },
+    { "i": "review-latency-p95", "x": 6, "y": 0, "w": 6, "h": 6 },
+    { "i": "findings-by-severity", "x": 0, "y": 6, "w": 6, "h": 6 },
+    { "i": "review-failures", "x": 6, "y": 6, "w": 6, "h": 6 },
+    { "i": "llm-tokens", "x": 0, "y": 12, "w": 6, "h": 6 },
+    { "i": "llm-cost", "x": 6, "y": 12, "w": 6, "h": 6 },
+    { "i": "scans-rate", "x": 0, "y": 18, "w": 6, "h": 6 },
+    { "i": "scan-latency-p95", "x": 6, "y": 18, "w": 6, "h": 6 },
+    { "i": "scan-findings-by-severity", "x": 0, "y": 24, "w": 6, "h": 6 },
+    { "i": "scan-failures", "x": 6, "y": 24, "w": 6, "h": 6 }
+  ],
+  "widgets": [
+    {
+      "id": "reviews-rate",
+      "title": "Reviews per minute (by status)",
+      "description": "Throughput of completed vs failed review runs.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "reviews_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "status", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{status}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "review-latency-p95",
+      "title": "Review duration p95 (s)",
+      "description": "95th-percentile end-to-end review latency.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "review_duration_seconds", "dataType": "float64", "type": "Histogram", "isColumn": true },
+              "aggregateOperator": "p95",
+              "timeAggregation": "",
+              "spaceAggregation": "p95",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [],
+              "legend": "p95",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "findings-by-severity",
+      "title": "Findings per minute (by severity)",
+      "description": "Findings produced, split by severity.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "findings_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "severity", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{severity}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "review-failures",
+      "title": "Review failures per minute (by stage)",
+      "description": "Failed review runs, split by the pipeline stage that failed.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "review_failures_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "stage", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{stage}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "llm-tokens",
+      "title": "LLM tokens per minute (by kind)",
+      "description": "Input vs output tokens consumed by the agent.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "llm_tokens_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "kind", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{kind}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "llm-cost",
+      "title": "LLM cost (USD, cumulative)",
+      "description": "Estimated USD spend on LLM usage (0 on free tier, still tracked).",
+      "panelTypes": "value",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "llm_cost_usd_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "sum",
+              "timeAggregation": "sum",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [],
+              "legend": "cost (USD)",
+              "reduceTo": "last",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "scans-rate",
+      "title": "Scans per minute (by status)",
+      "description": "Throughput of completed vs failed codebase scans.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "scans_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "status", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{status}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "scan-latency-p95",
+      "title": "Scan duration p95 (s)",
+      "description": "95th-percentile end-to-end codebase scan latency.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "scan_duration_seconds", "dataType": "float64", "type": "Histogram", "isColumn": true },
+              "aggregateOperator": "p95",
+              "timeAggregation": "",
+              "spaceAggregation": "p95",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [],
+              "legend": "p95",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "scan-findings-by-severity",
+      "title": "Scan findings per minute (by severity)",
+      "description": "Findings produced by codebase scans, split by severity.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "scan_findings_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "severity", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{severity}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    },
+    {
+      "id": "scan-failures",
+      "title": "Scan failures per minute (by stage)",
+      "description": "Failed codebase scans, split by the pipeline stage that failed.",
+      "panelTypes": "graph",
+      "nullZeroValues": "zero",
+      "query": {
+        "queryType": "builder",
+        "builder": {
+          "queryData": [
+            {
+              "dataSource": "metrics",
+              "queryName": "A",
+              "expression": "A",
+              "aggregateAttribute": { "key": "scan_failures_total", "dataType": "float64", "type": "Sum", "isColumn": true },
+              "aggregateOperator": "rate",
+              "timeAggregation": "rate",
+              "spaceAggregation": "sum",
+              "temporality": "Cumulative",
+              "functions": [],
+              "filters": { "op": "AND", "items": [] },
+              "groupBy": [{ "key": "stage", "dataType": "string", "type": "tag", "isColumn": false }],
+              "legend": "{{stage}}",
+              "reduceTo": "avg",
+              "orderBy": [],
+              "having": [],
+              "stepInterval": 60,
+              "disabled": false
+            }
+          ],
+          "queryFormulas": []
+        }
+      }
+    }
+  ]
+}
