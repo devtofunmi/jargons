@@ -24,7 +24,11 @@ import {
   reviewCodeLines,
   workflowSteps,
 } from '../data/landing-page'
-import type { CodeLineData, FeatureKey } from '../data/landing-page'
+import type {
+  CodeLineData,
+  FeatureKey,
+  FooterLink,
+} from '../data/landing-page'
 import { getGitHubAppStatus } from '../server/github-app'
 
 export const Route = createFileRoute('/')({
@@ -634,7 +638,7 @@ function FooterColumn({
   links,
 }: {
   title: string
-  links: readonly string[]
+  links: readonly FooterLink[]
 }) {
   return (
     <nav aria-label={`${title} links`}>
@@ -643,12 +647,15 @@ function FooterColumn({
       </h2>
       <ul className="mt-5 space-y-3">
         {links.map((link) => (
-          <li key={link}>
+          <li key={link.label}>
             <a
               className="text-sm text-zinc-600 transition-colors hover:text-zinc-200"
-              href={`#${link.toLowerCase().replaceAll(' ', '-')}`}
+              href={link.href}
+              {...(link.external
+                ? { target: '_blank', rel: 'noreferrer' }
+                : {})}
             >
-              {link}
+              {link.label}
             </a>
           </li>
         ))}
