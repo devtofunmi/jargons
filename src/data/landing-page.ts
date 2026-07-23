@@ -115,13 +115,31 @@ export const workflowSteps = [
   },
 ] as const
 
-export const footerColumns = [
+export type FooterLink = { label: string; href: string; external?: boolean }
+
+export const footerColumns: Array<{
+  title: string
+  links: FooterLink[]
+}> = [
   {
     title: 'Product',
-    links: ['Features', 'Workflow', 'Documentation'],
+    links: [
+      { label: 'Features', href: '#features' },
+      { label: 'Workflow', href: '#workflow' },
+      { label: 'Documentation', href: '/docs' },
+    ],
   },
   {
     title: 'Legal',
-    links: ['Privacy', 'Terms', 'GitHub'],
+    links: [
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
+      // Update to the source repository once it is public.
+      {
+        label: 'GitHub',
+        href: 'https://github.com/apps/jargons-ai',
+        external: true,
+      },
+    ],
   },
-] as const
+]
