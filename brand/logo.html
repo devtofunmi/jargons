@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jargons logo → PNG</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        gap: 24px;
+        background: #18181b;
+        color: #e4e4e7;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .preview { display: flex; gap: 24px; align-items: center; }
+      .preview img { width: 160px; height: 160px; }
+      .round { border-radius: 9999px; }
+      button {
+        border: 1px solid #3f3f46;
+        background: #ffe04b;
+        color: #09090b;
+        font: inherit;
+        font-weight: 700;
+        padding: 12px 20px;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+      p { color: #a1a1aa; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="preview">
+      <img src="./jargons-logo.svg" alt="Jargons logo (square)" />
+      <img class="round" src="./jargons-logo.svg" alt="Jargons logo (circle crop preview)" />
+    </div>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center">
+      <button data-size="512" data-name="jargons-logo.png">GitHub App logo → jargons-logo.png (512)</button>
+      <button data-size="512" data-name="logo512.png">public/logo512.png</button>
+      <button data-size="192" data-name="logo192.png">public/logo192.png</button>
+    </div>
+    <p>
+      Upload <b>jargons-logo.png</b> to the GitHub App. Drop <b>logo512.png</b> and
+      <b>logo192.png</b> into <b>public/</b> (replacing the TanStack defaults).
+    </p>
+
+    <script>
+      async function download(size, name) {
+        const svgText = await (await fetch('./jargons-logo.svg')).text()
+        const url = URL.createObjectURL(
+          new Blob([svgText], { type: 'image/svg+xml' }),
+        )
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          canvas.width = size
+          canvas.height = size
+          canvas.getContext('2d').drawImage(img, 0, 0, size, size)
+          URL.revokeObjectURL(url)
+          const a = document.createElement('a')
+          a.download = name
+          a.href = canvas.toDataURL('image/png')
+          a.click()
+        }
+        img.src = url
+      }
+      for (const btn of document.querySelectorAll('button[data-size]')) {
+        btn.addEventListener('click', () =>
+          download(Number(btn.dataset.size), btn.dataset.name),
+        )
+      }
+    </script>
+  </body>
+</html>
