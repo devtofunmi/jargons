@@ -10,6 +10,8 @@ Built for the **Agents of SigNoz** hackathon — Track 01, AI & Agent Observabil
 
 **Live:** [jargonsai.vercel.app](https://jargonsai.vercel.app)
 
+> **AI assistance (disclosed per hackathon rules):** Jargons was built with substantial help from an AI coding assistant (Anthropic's Claude, via Claude Code) for implementation, refactoring, and documentation. All architecture, integration, and testing decisions were directed and reviewed by the author.
+
 ---
 
 ## What it does
@@ -86,16 +88,25 @@ The LLM adapter is swappable by env var: build on Gemini's free tier, switch to 
 
 ## Getting started
 
-### 1. Run SigNoz
+### 1. Run SigNoz (via Foundry)
+
+This repo ships a **SigNoz Foundry** config (`casting.yaml` + `casting.yaml.lock`), so one command brings the exact, reproducible deployment online:
+
+```bash
+curl -fsSL https://signoz.io/foundry.sh | bash   # install foundryctl
+foundryctl cast -f casting.yaml                   # deploy SigNoz (Docker Compose)
+```
+
+SigNoz UI: http://localhost:8080 · OTLP ingest: `http://localhost:4318`.
+
+<details>
+<summary>Prefer to install SigNoz manually?</summary>
 
 ```bash
 git clone -b main https://github.com/SigNoz/signoz.git
 cd signoz/deploy/docker && docker compose up -d
 ```
-
-SigNoz UI: http://localhost:8080 · OTLP ingest: `http://localhost:4318`.
-
-This repo also ships a **SigNoz Foundry** config (`casting.yaml` + `casting.yaml.lock`) so the exact deployment is reproducible — `foundryctl cast -f casting.yaml`.
+</details>
 
 ### 2. Configure environment
 
