@@ -8,12 +8,14 @@ Most "AI agent" demos are black boxes: a prompt goes in, an answer comes out, an
 
 Built for the **Agents of SigNoz** hackathon — Track 01, AI & Agent Observability.
 
+**Live:** [jargonsai.vercel.app](https://jargonsai.vercel.app)
+
 ---
 
 ## What it does
 
-- **PR Review agent** — opens on every pull request (via a GitHub App webhook), fetches the diff, reviews it with an LLM, writes findings, and posts a ` Jargons review` comment back on the PR.
-- **Codebase Scan agent** — walks a repository's source files and reports bugs, vulnerabilities, and structural issues, with a full findings detail view.
+- **PR Review agent** — opens on every pull request (via a GitHub App webhook), fetches the diff, reviews it with an LLM, writes findings, and posts a branded **Jargons review** comment back on the PR. When the findings are fixable, it also **opens a companion pull request that applies the fixes**.
+- **Codebase Scan agent** — walks a repository's source files and reports bugs, vulnerabilities, and structural issues, with a full findings detail view. One click — **Open fix PR with Jargons** — turns a scan's findings into a pull request against the default branch.
 - **Agent Health** — an in-app dashboard that pulls the agent's *own* live telemetry (latency, token & cost usage, throughput, success rate) straight from SigNoz's query API, scoped per workspace.
 
 ## The observability story
@@ -27,19 +29,21 @@ review.run                      ← root span (workspace, repo, PR #)
 ├─ github.fetch_diff            ← client span to api.github.com
 ├─ llm.review                   ← GenAI span: model, input/output tokens, cost
 ├─ db.write_findings            ← Postgres span
-└─ github.post_review           ← posts the comment back
+├─ github.open_fix_pr           ← opens a PR that applies the fixes
+│  └─ llm.autofix               ← GenAI span: corrected file contents
+└─ github.post_review           ← posts the comment (with the fix-PR link)
 ```
 
-Scans produce the same shape (`scan.run → github.fetch_tree → github.fetch_files → llm.scan → db.write_summary`).
+Scans produce the same shape (`scan.run → github.fetch_tree → github.fetch_files → llm.scan → db.write_summary`), and a scan's findings can be turned into a fix PR on demand (`github.open_scan_fix_pr → llm.autofix`).
 
 ### Every SigNoz signal, used
 
 | Signal | How Jargons uses it |
 |---|---|
 | **Traces** | Full span tree per review/scan, plus auto-instrumented client spans to GitHub, the LLM API, and Postgres — SigNoz's **service map** draws the agent's dependency graph automatically. |
-| **Metrics** | 12 custom metrics — throughput, duration histograms, findings by severity, failures by stage, LLM tokens & cost — all tagged by `workspace`. |
+| **Metrics** | 11 custom metrics for reviews *and* scans — throughput, duration histograms, findings by severity, failures by stage, LLM tokens & cost — tagged by dimensions like `status`, `severity`, `stage`, and `workspace`. |
 | **Logs** | Structured logs emitted inside the active span, so each log line is correlated to its trace (click a slow review → jump to its logs). |
-| **Dashboards** | A committed "Review Agent Health" dashboard ([`signoz/dashboard-review-agent.json`](signoz/dashboard-review-agent.json)). |
+| **Dashboards** | A committed 10-panel "Agent Health" dashboard covering reviews and scans ([`signoz/dashboard-review-agent.json`](signoz/dashboard-review-agent.json)). |
 | **Alerts** | Failure-rate, LLM-latency, and daily-cost-budget alerts. |
 | **Exceptions** | Every failure calls `recordException`, so LLM quota errors and network timeouts surface in SigNoz's Exceptions view. |
 | **Query API** | The in-app **Agent Health** tab queries SigNoz directly for live token & cost telemetry. |
@@ -91,6 +95,8 @@ cd signoz/deploy/docker && docker compose up -d
 
 SigNoz UI: http://localhost:8080 · OTLP ingest: `http://localhost:4318`.
 
+This repo also ships a **SigNoz Foundry** config (`casting.yaml` + `casting.yaml.lock`) so the exact deployment is reproducible — `foundryctl cast -f casting.yaml`.
+
 ### 2. Configure environment
 
 Copy `.env.example` to `.env` and fill in:
@@ -116,7 +122,7 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 SIGNOZ_API_KEY=...              # for the in-app Agent Health tab
 ```
 
-Your GitHub App needs **Pull requests: Read & write** and **Contents: Read**, subscribed to **Pull request** events, with its webhook pointed at `/api/github/webhook` (use a tunnel like [smee.io](https://smee.io) locally).
+Your GitHub App needs **Pull requests: Read & write** and **Contents: Read & write** (the latter lets Jargons commit fixes and open fix PRs), subscribed to **Pull request** events, with its webhook pointed at `/api/github/webhook` (use a tunnel like [smee.io](https://smee.io) locally).
 
 ### 3. Install, migrate, run
 
@@ -142,8 +148,11 @@ Open a pull request on a connected repo → watch the review appear on the PR **
 |---|---|
 | `instrumentation.mjs` | OpenTelemetry bootstrap (traces, metrics, logs → OTLP) |
 | `src/server/review-engine/` | PR review agent (github, llm, orchestrator) |
+| `src/server/review-engine/open-fix-pr.ts` | Opens a PR that applies review fixes |
 | `src/server/scan-engine/` | Codebase scan agent |
+| `src/server/scans.ts` | Scan queries + user-initiated scan fix PRs |
 | `src/server/observability.ts` | Shared tracer + custom metrics + trace-correlated logs |
 | `src/server/agent-health.ts` | In-app health, backed by DB + the SigNoz query API |
 | `src/routes/api.github.webhook.tsx` | Webhook ingestion (HMAC-verified) |
 | `signoz/dashboard-review-agent.json` | Importable SigNoz dashboard |
+| `casting.yaml` · `casting.yaml.lock` | SigNoz Foundry config for reproducible deploy |
