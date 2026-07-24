@@ -15,6 +15,12 @@ todos.json
 # Claude Code local tooling (settings, isolated worktrees)
 .claude/
 
+# Hackathon submission working drafts (private)
+SUBMISSION-DRAFTS.md
+
+# SigNoz Foundry generated manifests (regenerable from casting.yaml + lock)
+pours/
+
 # IDE and CLI config
 .vscode/
 .cta.json
