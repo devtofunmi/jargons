@@ -32,6 +32,25 @@ export type RunReviewInput = {
   reviewSecurity: boolean
 }
 
+// Cap a best-effort step so it can never block the review: resolves the
+// fallback if the promise hasn't settled within `ms` (the underlying work is
+// abandoned, not awaited further).
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms)
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(fallback)
+      },
+    )
+  })
+}
+
 export async function runReview(input: RunReviewInput): Promise<void> {
   const repository = `${input.owner}/${input.repo}`
   const { workspace } = input
@@ -95,20 +114,25 @@ export async function runReview(input: RunReviewInput): Promise<void> {
       )
       recordFindingMetrics(result.findings, base)
 
-      // Best-effort: open a PR that applies the fixes. Never blocks the review.
+      // Best-effort: open a PR that applies the fixes. Hard-capped so a slow or
+      // stalled fix step can never block posting the review comment.
       stage = 'open_fix_pr'
       const fixPrUrl =
         result.findings.length > 0
-          ? await openFixPr(
-              {
-                installationId: input.installationId,
-                owner: input.owner,
-                repo: input.repo,
-                prNumber: input.prNumber,
-                headSha: input.headSha,
-                headRef: input.headRef,
-              },
-              result.findings,
+          ? await withTimeout(
+              openFixPr(
+                {
+                  installationId: input.installationId,
+                  owner: input.owner,
+                  repo: input.repo,
+                  prNumber: input.prNumber,
+                  headSha: input.headSha,
+                  headRef: input.headRef,
+                },
+                result.findings,
+              ),
+              25_000,
+              null,
             )
           : null
 
