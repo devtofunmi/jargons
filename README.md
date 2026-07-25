@@ -8,7 +8,7 @@ Most "AI agent" demos are black boxes: a prompt goes in, an answer comes out, an
 
 Built for the **Agents of SigNoz** hackathon — Track 01, AI & Agent Observability.
 
-**Live:** [jargonsai.vercel.app](https://jargonsai.vercel.app)
+**Live:** [jargons.vercel.app](https://jargons.vercel.app)
 
 > **AI assistance (disclosed per hackathon rules):** Jargons was built with substantial help from an AI coding assistant (Anthropic's Claude, via Claude Code) for implementation, refactoring, and documentation. All architecture, integration, and testing decisions were directed and reviewed by the author.
 
