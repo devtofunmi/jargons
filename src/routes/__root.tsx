@@ -33,7 +33,7 @@ export const Route = createRootRoute({
       },
       {
         property: 'og:url',
-        content: 'https://jargonsai.vercel.app',
+        content: 'https://www.jargons.run',
       },
       {
         property: 'og:title',
@@ -46,7 +46,7 @@ export const Route = createRootRoute({
       },
       {
         property: 'og:image',
-        content: 'https://jargonsai.vercel.app/logo512.png',
+        content: 'https://www.jargons.run/logo512.png',
       },
       {
         property: 'og:image:width',
@@ -76,7 +76,7 @@ export const Route = createRootRoute({
       },
       {
         name: 'twitter:image',
-        content: 'https://jargonsai.vercel.app/logo512.png',
+        content: 'https://www.jargons.run/logo512.png',
       },
     ],
     links: [
