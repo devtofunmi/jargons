@@ -17,6 +17,11 @@ type OptionalEnvKey =
   | 'GEMINI_API_KEY'
   | 'SIGNOZ_API_KEY'
   | 'SIGNOZ_URL'
+  | 'BACHS_CHECKOUT_URL'
+  | 'BACHS_WEBHOOK_SECRET'
+  | 'BACHS_API_KEY'
+  | 'BACHS_API_BASE'
+  | 'BACHS_PRO_PRODUCT_ID'
 
 export function getEnv(key: RequiredEnvKey) {
   const value = process.env[key]
