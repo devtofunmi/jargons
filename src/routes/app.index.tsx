@@ -8,18 +8,35 @@ import {
 } from 'lucide-react'
 
 import { AppPageSkeleton } from '../components/skeletons'
+import { ThroughputChart } from '../components/throughput-chart'
+import { UpgradeButton } from '../components/upgrade-button'
 import { padCount } from '../lib/format'
+import { getAgentHealth } from '../server/agent-health'
+import { getBilling } from '../server/billing'
 import { getDashboardData } from '../server/dashboard'
 
 export const Route = createFileRoute('/app/')({
-  loader: () => getDashboardData(),
+  loader: async () => {
+    const [data, billing, health] = await Promise.all([
+      getDashboardData(),
+      getBilling(),
+      getAgentHealth(),
+    ])
+    return { ...data, billing, throughput: health.throughput }
+  },
   pendingComponent: AppPageSkeleton,
   component: Dashboard,
 })
 
 function Dashboard() {
-  const { metrics, repositories, latestReview, priorityFindings } =
-    Route.useLoaderData()
+  const {
+    metrics,
+    repositories,
+    latestReview,
+    priorityFindings,
+    billing,
+    throughput,
+  } = Route.useLoaderData()
   const hasRepositories = metrics.repositories > 0
 
   return (
@@ -50,6 +67,30 @@ function Dashboard() {
         )}
       </div>
 
+      {billing && billing.plan === 'free' ? (
+        <div
+          className={`mt-8 flex flex-col gap-3 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between ${
+            billing.canRun
+              ? 'border-white/[0.07] bg-[#09090b]'
+              : 'border-amber-300/25 bg-amber-300/[0.06]'
+          }`}
+        >
+          <div>
+            <p className="text-sm font-semibold text-zinc-100">
+              {billing.canRun
+                ? 'Free plan'
+                : "You've used your free Jargons run"}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-zinc-500">
+              {billing.canRun
+                ? `One free agent run — ${billing.runsUsed}/${billing.limit} used. Upgrade for unlimited reviews and scans.`
+                : 'Upgrade to Jargons Pro for unlimited pull request reviews and codebase scans.'}
+            </p>
+          </div>
+          <UpgradeButton />
+        </div>
+      ) : null}
+
       <div className="mt-10 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <MetricCard
           label="repositories watched"
@@ -65,6 +106,8 @@ function Dashboard() {
           value={padCount(metrics.codebaseScans)}
         />
       </div>
+
+      <ThroughputChart data={throughput} />
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <article className="app-card overflow-hidden">
