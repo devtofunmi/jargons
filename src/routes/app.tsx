@@ -5,6 +5,9 @@ import { AppShellSkeleton } from '../components/skeletons'
 import { getCurrentUser } from '../server/github-auth'
 
 export const Route = createFileRoute('/app')({
+  head: () => ({
+    meta: [{ name: 'robots', content: 'noindex, nofollow' }],
+  }),
   pendingComponent: AppShellSkeleton,
   beforeLoad: async () => {
     const user = await getCurrentUser()
