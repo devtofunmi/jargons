@@ -12,6 +12,18 @@ export const Route = createFileRoute('/api/scans/start')({
           return json({ error: 'unauthorized' }, 401)
         }
 
+        // Freemium gate: a free workspace gets one lifetime agent run.
+        const { getWorkspaceBilling, incrementWorkspaceRuns } = await import(
+          '../server/billing'
+        )
+        const billing = await getWorkspaceBilling(currentUser.workspace.id)
+        if (!billing.canRun) {
+          return json(
+            { error: 'upgrade_required', upgradeUrl: billing.upgradeUrl },
+            402,
+          )
+        }
+
         let body: { repositoryId?: string }
         try {
           body = (await request.json()) as { repositoryId?: string }
@@ -73,6 +85,8 @@ export const Route = createFileRoute('/api/scans/start')({
           .returning({ id: codebaseScans.id })
 
         const scanId = inserted[0].id
+
+        await incrementWorkspaceRuns(currentUser.workspace.id)
 
         // Fire-and-forget: the engine owns its own tracing and never throws.
         const { runScan } = await import('../server/scan-engine/run-scan')
