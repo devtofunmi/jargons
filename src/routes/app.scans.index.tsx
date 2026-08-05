@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 
 import { ListPageSkeleton } from '../components/skeletons'
 import { SearchableSelect } from '../components/searchable-select'
+import { UpgradeButton } from '../components/upgrade-button'
 import { padCount, timeAgo } from '../lib/format'
 import { getSyncedRepositories } from '../server/github-app'
 import { getCodebaseScans } from '../server/scans'
@@ -35,6 +36,7 @@ function ScansPage() {
   const router = useRouter()
   const [selectedRepo, setSelectedRepo] = useState('')
   const [starting, setStarting] = useState(false)
+  const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null)
 
   const hasActiveScan = scans.some(
     (scan) => scan.status === 'queued' || scan.status === 'running',
@@ -54,11 +56,18 @@ function ScansPage() {
     if (!repositoryId) return
     setStarting(true)
     try {
-      await fetch('/api/scans/start', {
+      const res = await fetch('/api/scans/start', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ repositoryId }),
       })
+      if (res.status === 402) {
+        const data = (await res.json().catch(() => ({}))) as {
+          upgradeUrl?: string
+        }
+        setUpgradeUrl(data.upgradeUrl ?? 'https://bachs.io/')
+        return
+      }
       await router.invalidate()
     } finally {
       setStarting(false)
@@ -122,6 +131,21 @@ function ScansPage() {
           </button>
         </div>
       </div>
+
+      {upgradeUrl ? (
+        <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-amber-200">
+              You&rsquo;ve used your free Jargons run
+            </p>
+            <p className="mt-1 text-sm leading-6 text-zinc-400">
+              Upgrade to Jargons Pro to run unlimited codebase scans and pull
+              request reviews.
+            </p>
+          </div>
+          <UpgradeButton />
+        </div>
+      ) : null}
 
       <div className="mt-10 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <ScanMetric
