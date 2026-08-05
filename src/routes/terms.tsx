@@ -3,6 +3,21 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ContentSection, ContentShell } from '../components/content-shell'
 
 export const Route = createFileRoute('/terms')({
+  head: () => ({
+    meta: [
+      { title: 'Terms of Service — Jargons' },
+      {
+        name: 'description',
+        content: 'The terms you agree to when using Jargons.',
+      },
+      { property: 'og:title', content: 'Terms of Service — Jargons' },
+      {
+        property: 'og:description',
+        content: 'The terms you agree to when using Jargons.',
+      },
+    ],
+    links: [{ rel: 'canonical', href: 'https://www.jargons.run/terms' }],
+  }),
   component: TermsPage,
 })
 
