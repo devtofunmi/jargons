@@ -12,7 +12,6 @@ import {
 import { AppPageSkeleton } from '../components/skeletons'
 import { ThroughputChart } from '../components/throughput-chart'
 import { getAgentHealth } from '../server/agent-health'
-import type { AgentHealth } from '../server/agent-health'
 
 export const Route = createFileRoute('/app/health')({
   loader: () => getAgentHealth(),
