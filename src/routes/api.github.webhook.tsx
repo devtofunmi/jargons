@@ -24,7 +24,6 @@ export const Route = createFileRoute('/api/github/webhook')({
           return json({ error: 'invalid signature' }, 401)
         }
 
-        // Respond to GitHub's ping immediately.
         if (event === 'ping') {
           return json({ ok: true }, 200)
         }
