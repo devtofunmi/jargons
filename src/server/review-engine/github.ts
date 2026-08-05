@@ -187,6 +187,43 @@ export async function openPullRequest({
   return data.html_url ?? null
 }
 
+// Nudge a free workspace to upgrade once it has used its trial run. Posted as
+// a plain PR comment. Best-effort — never throws.
+export async function postUpgradeComment({
+  installationId,
+  owner,
+  repo,
+  prNumber,
+  upgradeUrl,
+}: {
+  installationId: string
+  owner: string
+  repo: string
+  prNumber: number
+  upgradeUrl: string
+}): Promise<void> {
+  try {
+    const token = await createInstallationAccessToken(installationId)
+    const body = [
+      reviewHeader(),
+      '',
+      "You've used the free Jargons run for this workspace. Upgrade to keep reviewing pull requests and scanning your codebase.",
+      '',
+      `**[Upgrade to Jargons Pro →](${upgradeUrl})**`,
+    ].join('\n')
+    await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`,
+      {
+        method: 'POST',
+        headers: githubHeaders(`Bearer ${token}`),
+        body: JSON.stringify({ body }),
+      },
+    )
+  } catch {
+    // best-effort
+  }
+}
+
 export async function fetchPullRequestDiff({
   installationId,
   owner,
