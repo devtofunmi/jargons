@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 
 export type ThroughputPoint = {
-  timestamp: string
+  timestamp: number
   reviews: number
   scans: number
 }
