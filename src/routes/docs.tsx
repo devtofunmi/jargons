@@ -3,6 +3,23 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ContentSection, ContentShell } from '../components/content-shell'
 
 export const Route = createFileRoute('/docs')({
+  head: () => ({
+    meta: [
+      { title: 'Documentation — Jargons' },
+      {
+        name: 'description',
+        content:
+          'Connect Jargons and start getting automated AI reviews and codebase scans on your pull requests.',
+      },
+      { property: 'og:title', content: 'Documentation — Jargons' },
+      {
+        property: 'og:description',
+        content:
+          'Connect Jargons and start getting automated AI reviews and codebase scans on your pull requests.',
+      },
+    ],
+    links: [{ rel: 'canonical', href: 'https://www.jargons.run/docs' }],
+  }),
   component: DocsPage,
 })
 
