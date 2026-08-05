@@ -145,6 +145,26 @@ export async function handlePullRequestEvent(
     return { handled: false, reason: 'repository not synced' }
   }
 
+  // Freemium gate: a free workspace gets one lifetime agent run. Once used,
+  // skip the review and (on open/reopen) nudge them to upgrade.
+  const { getWorkspaceBilling, incrementWorkspaceRuns } = await import(
+    './billing'
+  )
+  const billing = await getWorkspaceBilling(workspaceId)
+  if (!billing.canRun) {
+    if (payload.action === 'opened' || payload.action === 'reopened') {
+      const { postUpgradeComment } = await import('./review-engine/github')
+      void postUpgradeComment({
+        installationId: String(payload.installation.id),
+        owner: payload.repository.owner.login,
+        repo: payload.repository.name,
+        prNumber: payload.pull_request.number,
+        upgradeUrl: billing.upgradeUrl,
+      })
+    }
+    return { handled: false, reason: 'free trial used — upgrade required' }
+  }
+
   const now = new Date()
   const pr = payload.pull_request
 
@@ -209,6 +229,9 @@ export async function handlePullRequestEvent(
   }
 
   const reviewRunId = reviewRun[0].id
+
+  // Count this run against the workspace's plan (only for a newly created run).
+  await incrementWorkspaceRuns(workspaceId)
 
   // Fire-and-forget: the engine owns its own tracing and never throws.
   void runReview({
