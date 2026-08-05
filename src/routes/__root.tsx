@@ -45,25 +45,33 @@ export const Route = createRootRoute({
           'Jargons reviews pull requests, catches real issues, and leaves thoughtful feedback so your team can ship better code.',
       },
       {
+        property: 'og:site_name',
+        content: 'Jargons',
+      },
+      {
+        property: 'og:locale',
+        content: 'en_US',
+      },
+      {
         property: 'og:image',
-        content: 'https://www.jargons.run/logo512.png',
+        content: 'https://www.jargons.run/og.png',
       },
       {
         property: 'og:image:width',
-        content: '512',
+        content: '1200',
       },
       {
         property: 'og:image:height',
-        content: '512',
+        content: '630',
       },
       {
         property: 'og:image:alt',
-        content: 'Jargons logo',
+        content: 'Jargons — AI code review that gets your code',
       },
       // Twitter / X Card
       {
         name: 'twitter:card',
-        content: 'summary',
+        content: 'summary_large_image',
       },
       {
         name: 'twitter:title',
@@ -76,10 +84,14 @@ export const Route = createRootRoute({
       },
       {
         name: 'twitter:image',
-        content: 'https://www.jargons.run/logo512.png',
+        content: 'https://www.jargons.run/og.png',
       },
     ],
     links: [
+      {
+        rel: 'canonical',
+        href: 'https://www.jargons.run',
+      },
       {
         rel: 'stylesheet',
         href: appCss,
@@ -96,6 +108,32 @@ export const Route = createRootRoute({
       {
         rel: 'manifest',
         href: '/manifest.json',
+      },
+    ],
+    scripts: [
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'Jargons',
+          applicationCategory: 'DeveloperApplication',
+          operatingSystem: 'Web',
+          url: 'https://www.jargons.run',
+          description:
+            'AI code review agent that reviews pull requests, opens fix PRs, and scans codebases for bugs and security issues.',
+          offers: {
+            '@type': 'Offer',
+            price: '15.00',
+            priceCurrency: 'USD',
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: 'Jargons',
+            url: 'https://www.jargons.run',
+            logo: 'https://www.jargons.run/logo512.png',
+          },
+        }),
       },
     ],
   }),
