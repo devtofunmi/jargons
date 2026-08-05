@@ -72,6 +72,15 @@ export const workspaces = pgTable('workspaces', {
   ownerId: uuid('owner_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  // Billing plan: 'free' (one lifetime agent run) or 'pro' (unlimited).
+  plan: text('plan').notNull().default('free'),
+  // Lifetime count of agent runs (reviews + scans) started by this workspace,
+  // incremented when a run is created. Drives the free-tier limit.
+  runsUsed: integer('runs_used').notNull().default(0),
+  // Bachs billing identifiers, set when the workspace subscribes. The customer
+  // id links webhook events back to this workspace.
+  bachsCustomerId: text('bachs_customer_id'),
+  bachsSubscriptionId: text('bachs_subscription_id'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
