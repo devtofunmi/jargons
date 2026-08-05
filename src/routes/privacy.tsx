@@ -3,6 +3,23 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ContentSection, ContentShell } from '../components/content-shell'
 
 export const Route = createFileRoute('/privacy')({
+  head: () => ({
+    meta: [
+      { title: 'Privacy Policy — Jargons' },
+      {
+        name: 'description',
+        content:
+          'How Jargons accesses, uses, and stores your data when it reviews your code.',
+      },
+      { property: 'og:title', content: 'Privacy Policy — Jargons' },
+      {
+        property: 'og:description',
+        content:
+          'How Jargons accesses, uses, and stores your data when it reviews your code.',
+      },
+    ],
+    links: [{ rel: 'canonical', href: 'https://www.jargons.run/privacy' }],
+  }),
   component: PrivacyPage,
 })
 
