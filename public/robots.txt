@@ -1,3 +1,9 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /app
+Disallow: /api
+Disallow: /auth
+Disallow: /upgrade
+
+Sitemap: https://www.jargons.run/sitemap.xml
