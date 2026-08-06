@@ -6,8 +6,6 @@ Install the GitHub App, and every pull request gets an automatic review: finding
 
 **Live:** [jargons.run](https://www.jargons.run)
 
-> **AI assistance:** Jargons was built with substantial help from an AI coding assistant (Anthropic's Claude, via Claude Code) for implementation, refactoring, and documentation. All architecture, integration, and testing decisions were directed and reviewed by our team.
-
 ---
 
 ## What it does
