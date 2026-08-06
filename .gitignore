@@ -23,8 +23,12 @@ BLOG-FINAL.md
 brand/architecture.svg
 brand/architecture.png
 
-# SigNoz Foundry generated manifests (regenerable from casting.yaml + lock)
+# SigNoz / observability — kept locally, not part of the public product
 pours/
+signoz/
+OBSERVABILITY.md
+casting.yaml
+casting.yaml.lock
 
 # IDE and CLI config
 .vscode/
