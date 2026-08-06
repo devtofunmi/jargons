@@ -1,16 +1,12 @@
-#  Jargons — an observable AI code-review agent
+# Jargons — AI code review that gets your code
 
-> **If you can't observe your AI agents, you don't own them.**
+Jargons is an AI agent that reviews GitHub pull requests and scans whole codebases for bugs, security issues, and structural risks — then opens a pull request that applies the fixes.
 
-Jargons is an AI agent that reviews GitHub pull requests and scans whole codebases for bugs, security issues, and structural risks — and every step it takes is **fully observable in [SigNoz](https://signoz.io)** through OpenTelemetry.
-
-Most "AI agent" demos are black boxes: a prompt goes in, an answer comes out, and you have no idea what happened in between — how long it took, how many tokens it burned, what it called, or why it failed. Jargons is the opposite. The agent is instrumented end to end, so you can watch a review as a distributed trace, chart its latency and cost, read its logs correlated to that trace, alert on its failures, and even see its health **inside the product itself**.
-
-Built for the **Agents of SigNoz** hackathon — Track 01, AI & Agent Observability.
+Install the GitHub App, and every pull request gets an automatic review: findings with severity and file locations posted as a comment, plus a companion PR that applies the suggested fixes for you to review and merge.
 
 **Live:** [jargons.run](https://www.jargons.run)
 
-> **AI assistance (disclosed per hackathon rules):** Jargons was built with substantial help from an AI coding assistant (Anthropic's Claude, via Claude Code) for implementation, refactoring, and documentation. All architecture, integration, and testing decisions were directed and reviewed by our team.
+> **AI assistance:** Jargons was built with substantial help from an AI coding assistant (Anthropic's Claude, via Claude Code) for implementation, refactoring, and documentation. All architecture, integration, and testing decisions were directed and reviewed by our team.
 
 ---
 
@@ -18,39 +14,6 @@ Built for the **Agents of SigNoz** hackathon — Track 01, AI & Agent Observabil
 
 - **PR Review agent** — opens on every pull request (via a GitHub App webhook), fetches the diff, reviews it with an LLM, writes findings, and posts a branded **Jargons review** comment back on the PR. When the findings are fixable, it also **opens a companion pull request that applies the fixes**.
 - **Codebase Scan agent** — walks a repository's source files and reports bugs, vulnerabilities, and structural issues, with a full findings detail view. One click — **Open fix PR with Jargons** — turns a scan's findings into a pull request against the default branch.
-- **Agent Health** — an in-app dashboard that pulls the agent's *own* live telemetry (latency, token & cost usage, throughput, success rate) straight from SigNoz's query API, scoped per workspace.
-
-## The observability story
-
-The whole agent speaks **vendor-neutral OpenTelemetry (OTLP)**. SigNoz is the backend, selected entirely by environment variables — swap it for SigNoz Cloud or a Kubernetes deployment without touching code.
-
-Every review is a distributed trace:
-
-```
-review.run                      ← root span (workspace, repo, PR #)
-├─ github.fetch_diff            ← client span to api.github.com
-├─ llm.review                   ← GenAI span: model, input/output tokens, cost
-├─ db.write_findings            ← Postgres span
-├─ github.open_fix_pr           ← opens a PR that applies the fixes
-│  └─ llm.autofix               ← GenAI span: corrected file contents
-└─ github.post_review           ← posts the comment (with the fix-PR link)
-```
-
-Scans produce the same shape (`scan.run → github.fetch_tree → github.fetch_files → llm.scan → db.write_summary`), and a scan's findings can be turned into a fix PR on demand (`github.open_scan_fix_pr → llm.autofix`).
-
-### Every SigNoz signal, used
-
-| Signal | How Jargons uses it |
-|---|---|
-| **Traces** | Full span tree per review/scan, plus auto-instrumented client spans to GitHub, the LLM API, and Postgres — SigNoz's **service map** draws the agent's dependency graph automatically. |
-| **Metrics** | 11 custom metrics for reviews *and* scans — throughput, duration histograms, findings by severity, failures by stage, LLM tokens & cost — tagged by dimensions like `status`, `severity`, `stage`, and `workspace`. |
-| **Logs** | Structured logs emitted inside the active span, so each log line is correlated to its trace (click a slow review → jump to its logs). |
-| **Dashboards** | A committed 10-panel "Agent Health" dashboard covering reviews and scans ([`signoz/dashboard-review-agent.json`](signoz/dashboard-review-agent.json)). |
-| **Alerts** | Failure-rate, LLM-latency, and daily-cost-budget alerts. |
-| **Exceptions** | Every failure calls `recordException`, so LLM quota errors and network timeouts surface in SigNoz's Exceptions view. |
-| **Query API** | The in-app **Agent Health** tab queries SigNoz directly for live token & cost telemetry. |
-
-Observability is a **side channel**: if SigNoz is down, the agent keeps reviewing pull requests. The product never depends on it.
 
 ---
 
@@ -65,50 +28,23 @@ flowchart LR
   SC --> LLM
   RE --> PG[(Postgres)]
   SC --> PG
-  RE -->|comment| GH
-  subgraph OTEL[OpenTelemetry SDK]
-    RE --- T[traces / metrics / logs]
-    SC --- T
-  end
-  T -->|OTLP| SZ[(SigNoz)]
-  AH[Agent Health tab] -->|query API| SZ
+  RE -->|comment + fix PR| GH
 ```
 
 ## Tech stack
 
 - **TanStack Start** (React 19, file-based routing, server functions) on a **Nitro** node server
 - **Drizzle ORM** + **Postgres**
-- **OpenTelemetry** (Node SDK, auto-instrumentations, OTLP proto exporters) → **SigNoz**
 - **LLM: provider-agnostic** (`LLM_PROVIDER` / `LLM_MODEL`) — defaults to **Google Gemini** (`gemini-2.5-flash`)
 - Tailwind CSS v4
 
-The LLM adapter is swappable by env var: build on Gemini's free tier, switch to Claude/GPT/anything in production without a rewrite — the same design philosophy as the swappable observability backend.
+The LLM adapter is swappable by env var: build on Gemini, then switch to Claude/GPT/anything in production without a rewrite.
 
 ---
 
 ## Getting started
 
-### 1. Run SigNoz (via Foundry)
-
-This repo ships a **SigNoz Foundry** config (`casting.yaml` + `casting.yaml.lock`), so one command brings the exact, reproducible deployment online:
-
-```bash
-curl -fsSL https://signoz.io/foundry.sh | bash   # install foundryctl
-foundryctl cast -f casting.yaml                   # deploy SigNoz (Docker Compose)
-```
-
-SigNoz UI: http://localhost:8080 · OTLP ingest: `http://localhost:4318`.
-
-<details>
-<summary>Prefer to install SigNoz manually?</summary>
-
-```bash
-git clone -b main https://github.com/SigNoz/signoz.git
-cd signoz/deploy/docker && docker compose up -d
-```
-</details>
-
-### 2. Configure environment
+### 1. Configure environment
 
 Copy `.env.example` to `.env` and fill in:
 
@@ -126,16 +62,11 @@ SESSION_SECRET=...
 LLM_PROVIDER=gemini
 LLM_MODEL=gemini-2.5-flash
 GEMINI_API_KEY=...              # aistudio.google.com/app/apikey
-
-OTEL_SERVICE_NAME=jargons-review-agent
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-SIGNOZ_API_KEY=...              # for the in-app Agent Health tab
 ```
 
 Your GitHub App needs **Pull requests: Read & write** and **Contents: Read & write** (the latter lets Jargons commit fixes and open fix PRs), subscribed to **Pull request** events, with its webhook pointed at `/api/github/webhook` (use a tunnel like [smee.io](https://smee.io) locally).
 
-### 3. Install, migrate, run
+### 2. Install, migrate, run
 
 ```bash
 npm install
@@ -143,13 +74,7 @@ npm run db:migrate
 npm run dev        # or: npm run build && npm start  (production)
 ```
 
-The dev server is launched with OpenTelemetry preloaded:
-
-```bash
-NODE_OPTIONS="--import ./instrumentation.mjs" npm run dev
-```
-
-Open a pull request on a connected repo → watch the review appear on the PR **and** the trace, metrics, logs, and cost light up in SigNoz. See [`OBSERVABILITY.md`](OBSERVABILITY.md) for the full observability guide.
+Open a pull request on a connected repo → watch the review appear on the PR, with a companion fix PR when the findings are fixable.
 
 ---
 
@@ -157,13 +82,8 @@ Open a pull request on a connected repo → watch the review appear on the PR **
 
 | Path | What's there |
 |---|---|
-| `instrumentation.mjs` | OpenTelemetry bootstrap (traces, metrics, logs → OTLP) |
 | `src/server/review-engine/` | PR review agent (github, llm, orchestrator) |
 | `src/server/review-engine/open-fix-pr.ts` | Opens a PR that applies review fixes |
 | `src/server/scan-engine/` | Codebase scan agent |
 | `src/server/scans.ts` | Scan queries + user-initiated scan fix PRs |
-| `src/server/observability.ts` | Shared tracer + custom metrics + trace-correlated logs |
-| `src/server/agent-health.ts` | In-app health, backed by DB + the SigNoz query API |
 | `src/routes/api.github.webhook.tsx` | Webhook ingestion (HMAC-verified) |
-| `signoz/dashboard-review-agent.json` | Importable SigNoz dashboard |
-| `casting.yaml` · `casting.yaml.lock` | SigNoz Foundry config for reproducible deploy |
