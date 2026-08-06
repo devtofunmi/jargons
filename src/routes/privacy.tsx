@@ -62,10 +62,8 @@ function PrivacyPage() {
           >
             Gemini API terms
           </a>
-          . Jargons currently uses the free tier of the Gemini API, under which
-          Google may retain content and use it to improve its services —
-          including review by human reviewers — as described in those terms. We
-          do not send your code to any other third party.
+          , which govern how that content is handled. We do not send your code
+          to any other third party.
         </p>
       </ContentSection>
 
@@ -79,25 +77,12 @@ function PrivacyPage() {
         </p>
       </ContentSection>
 
-      <ContentSection heading="Observability">
-        <p>
-          Jargons instruments its review agent with OpenTelemetry and sends
-          traces and metrics to SigNoz, which powers the Agent Health dashboard —
-          run counts, latency, throughput, and token and cost usage. This
-          telemetry describes how the agent performs and contains operational
-          metadata only: model names, repository names, pull request and run
-          identifiers, timings, token counts, cost, and finding counts. It never
-          includes your source code, diffs, or the review text.
-        </p>
-      </ContentSection>
-
       <ContentSection heading="Third parties">
         <p>
-          Jargons relies on GitHub (source hosting and identity), Google Gemini
-          (to generate reviews and fixes), and SigNoz (OpenTelemetry-based
-          observability). Each processes data only to provide its part of the
-          service, and only SigNoz's operational metadata — not your code — is
-          used for monitoring.
+          Jargons relies on GitHub (source hosting and identity) and Google
+          Gemini (to generate reviews and fixes). Each processes data only to
+          provide its part of the service. We do not sell your data or share it
+          with any other third party.
         </p>
       </ContentSection>
 
