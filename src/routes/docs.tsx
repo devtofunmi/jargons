@@ -74,16 +74,6 @@ function DocsPage() {
         </p>
       </ContentSection>
 
-      <ContentSection heading="Agent health">
-        <p>
-          The Agent Health page shows how the review agent is performing: run
-          counts, success rate, latency, throughput, and token/cost usage.
-          Jargons instruments the agent with OpenTelemetry and ships traces and
-          metrics to SigNoz. Core metrics (counts, latency, throughput) are read
-          from your database, while token and cost figures come live from SigNoz.
-        </p>
-      </ContentSection>
-
       <ContentSection heading="Support">
         <p>
           Need help? Reach out through the{' '}
