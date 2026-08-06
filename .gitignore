@@ -30,6 +30,9 @@ OBSERVABILITY.md
 casting.yaml
 casting.yaml.lock
 
+# Local webhook/review pipeline test harness (hardcoded IDs, hits localhost)
+_rt.mjs
+
 # IDE and CLI config
 .vscode/
 .cta.json
