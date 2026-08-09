@@ -53,7 +53,11 @@ export async function reviewDiff(
   input: ReviewDiffInput,
 ): Promise<ReviewDiffResult> {
   const provider = getOptionalEnv('LLM_PROVIDER', 'gemini')
-  const model = getOptionalEnv('LLM_MODEL', 'gemini-2.0-flash')
+  // Keep this default in sync with the scan/autofix adapters (gemini-2.5-flash).
+  // gemini-2.0-flash is quota-throttled on the free tier, so falling back to it
+  // when LLM_MODEL is unset silently breaks reviews while scans (which default
+  // to 2.5-flash) keep working.
+  const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
 
   return tracer.startActiveSpan('llm.review', async (span) => {
     span.setAttributes({
@@ -133,6 +137,58 @@ type GeminiResponse = {
   }
 }
 
+// Per-attempt timeout so a hung request can't stall the whole review, plus a
+// single retry: free-tier rate limits (429) and transient 5xx/network errors
+// are common, and one retry after a short delay clears most of them without
+// dragging the run out.
+const REQUEST_TIMEOUT_MS = 30_000
+const RETRY_DELAY_MS = 1_500
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
+
+async function postWithRetry(
+  endpoint: string,
+  apiKey: string,
+  body: string,
+): Promise<Response> {
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+        body,
+        signal: controller.signal,
+      })
+
+      // Retry once on a transient status; otherwise hand the response back and
+      // let the caller surface a non-retryable failure.
+      if (attempt === 0 && RETRYABLE_STATUS.has(response.status)) {
+        lastError = new Error(`Gemini request failed (${response.status})`)
+        continue
+      }
+
+      return response
+    } catch (error) {
+      lastError = error
+      if (attempt === 1) throw error
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Gemini request failed')
+}
+
 async function callGemini(model: string, input: ReviewDiffInput) {
   const apiKey = getOptionalEnv('GEMINI_API_KEY', '')
 
@@ -141,23 +197,17 @@ async function callGemini(model: string, input: ReviewDiffInput) {
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-goog-api-key': apiKey,
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemPrompt(input) }] },
+    contents: [{ role: 'user', parts: [{ text: userPrompt(input) }] }],
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+      responseSchema: RESPONSE_SCHEMA,
     },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt(input) }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt(input) }] }],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA,
-      },
-    }),
   })
+
+  const response = await postWithRetry(endpoint, apiKey, body)
 
   if (!response.ok) {
     const detail = await response.text()
