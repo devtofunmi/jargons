@@ -115,7 +115,10 @@ export async function runReview(input: RunReviewInput): Promise<void> {
       recordFindingMetrics(result.findings, base)
 
       // Best-effort: open a PR that applies the fixes. Hard-capped so a slow or
-      // stalled fix step can never block posting the review comment.
+      // stalled fix step can never block posting the review comment. The cap
+      // must clear a full autofix pass: the LLM regenerates entire files
+      // (~20s on gemini-2.5-flash) plus branch/commit/PR calls, which together
+      // overran the old 25s cap and silently dropped the fix-PR link.
       stage = 'open_fix_pr'
       const fixPrUrl =
         result.findings.length > 0
@@ -131,7 +134,7 @@ export async function runReview(input: RunReviewInput): Promise<void> {
                 },
                 result.findings,
               ),
-              25_000,
+              45_000,
               null,
             )
           : null
