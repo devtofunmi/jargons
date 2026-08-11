@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { AppShell } from '../components/app-shell'
 import { AppShellSkeleton } from '../components/skeletons'
+import { getGitHubAppStatus } from '../server/github-app'
 import { getCurrentUser } from '../server/github-auth'
 
 export const Route = createFileRoute('/app')({
@@ -16,10 +17,16 @@ export const Route = createFileRoute('/app')({
       throw redirect({ to: '/auth/sign-in' })
     }
 
-    // Onboarding gate: a user who hasn't finished or skipped the guided
-    // onboarding is sent there instead of landing on an empty dashboard.
+    // Onboarding gate for users who haven't finished or skipped it yet:
+    // connect the GitHub App first, then land on the guided onboarding page.
     // Settings stays reachable so they can still manage or delete their account.
     if (!user.onboardedAt && !location.pathname.startsWith('/app/settings')) {
+      const { installed } = await getGitHubAppStatus()
+
+      if (!installed) {
+        throw redirect({ to: '/auth/connect' })
+      }
+
       throw redirect({ to: '/onboarding' })
     }
 
