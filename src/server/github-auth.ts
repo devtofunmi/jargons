@@ -309,7 +309,7 @@ async function setSessionCookie({
   })
 }
 
-async function deleteSessionCookie() {
+export async function deleteSessionCookie() {
   const { deleteCookie } = await import('@tanstack/react-start/server')
 
   deleteCookie(sessionCookieName, { path: '/' })
