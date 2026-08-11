@@ -51,6 +51,7 @@ export const Route = createFileRoute('/api/scans/start')({
             owner: repositories.owner,
             name: repositories.name,
             defaultBranch: repositories.defaultBranch,
+            status: repositories.status,
           })
           .from(repositories)
           .where(
@@ -66,6 +67,11 @@ export const Route = createFileRoute('/api/scans/start')({
         }
 
         const repository = repositoryRows[0]
+
+        // Paused repositories are excluded from all agent runs.
+        if (repository.status === 'paused') {
+          return json({ error: 'repository_paused' }, 409)
+        }
 
         const installationRows = await db
           .select({ installationId: githubInstallations.installationId })
