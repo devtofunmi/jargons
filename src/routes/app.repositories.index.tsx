@@ -63,7 +63,9 @@ function RepositoriesPage() {
         <GitHubAppInstallButton
           className="button-primary self-start"
           label={
-            repositories.length > 0 ? 'Manage GitHub app' : 'Install GitHub app'
+            repositories.length > 0
+              ? 'Manage repositories on GitHub'
+              : 'Install GitHub app'
           }
         />
       </div>
