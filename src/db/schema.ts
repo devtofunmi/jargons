@@ -53,6 +53,9 @@ export const users = pgTable(
     name: text('name'),
     email: text('email'),
     avatarUrl: text('avatar_url'),
+    // Set the first time the user finishes or skips onboarding; null means the
+    // guided onboarding has not been dismissed yet.
+    onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
