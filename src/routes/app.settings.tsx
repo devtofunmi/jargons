@@ -9,6 +9,7 @@ import {
   Trash2,
   TriangleAlert,
   Users,
+  X,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -88,6 +89,12 @@ function WorkspaceSettingsPage() {
   const confirmPhrase = settings.owner.username
   const canDelete =
     confirmText.trim() === confirmPhrase && deleteState !== 'deleting'
+
+  function closeDeleteModal() {
+    setConfirmOpen(false)
+    setConfirmText('')
+    setDeleteState('idle')
+  }
 
   async function deleteAccountAndSignOut() {
     setDeleteState('deleting')
@@ -352,21 +359,60 @@ function WorkspaceSettingsPage() {
           undone.
         </p>
 
-        {!confirmOpen ? (
-          <button
-            type="button"
-            className="button-secondary mt-6 border-red-500/30 text-red-300 hover:bg-red-500/10"
-            onClick={() => {
-              setConfirmOpen(true)
-              setDeleteState('idle')
-            }}
+        <button
+          type="button"
+          className="button-secondary mt-6 border-red-500/30 text-red-300 hover:bg-red-500/10"
+          onClick={() => {
+            setConfirmText('')
+            setDeleteState('idle')
+            setConfirmOpen(true)
+          }}
+        >
+          Delete account
+          <Trash2 className="size-4" />
+        </button>
+      </article>
+
+      {confirmOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (deleteState !== 'deleting') closeDeleteModal()
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-[24px] border border-red-500/20 bg-[#0c0c0f] p-6"
+            onClick={(event) => event.stopPropagation()}
           >
-            Delete account
-            <Trash2 className="size-4" />
-          </button>
-        ) : (
-          <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-5">
-            <label className="block">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="grid size-9 place-items-center rounded-xl border border-red-500/20 bg-red-500/[0.08] text-red-400">
+                  <TriangleAlert className="size-4" />
+                </span>
+                <h2 className="text-lg font-medium tracking-[-0.03em]">
+                  Delete account
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="text-zinc-500 hover:text-zinc-200 disabled:opacity-40"
+                disabled={deleteState === 'deleting'}
+                onClick={closeDeleteModal}
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <p className="mt-4 text-sm leading-6 text-zinc-500">
+              This permanently removes your workspace, connected repositories,
+              pull request reviews, findings, and codebase scans, and uninstalls
+              the Jargons GitHub App from your account. This cannot be undone.
+            </p>
+
+            <label className="mt-5 block">
               <span className="text-sm text-zinc-400">
                 Type{' '}
                 <span className="font-mono font-semibold text-zinc-200">
@@ -377,6 +423,7 @@ function WorkspaceSettingsPage() {
               <input
                 type="text"
                 autoComplete="off"
+                autoFocus
                 value={confirmText}
                 onChange={(event) => setConfirmText(event.target.value)}
                 className="mt-3 block w-full rounded-2xl border border-white/[0.1] bg-[#09090b] px-4 py-3 font-mono text-sm text-zinc-200 outline-none focus:border-red-500/40"
@@ -384,10 +431,10 @@ function WorkspaceSettingsPage() {
               />
             </label>
 
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-5 flex gap-3">
               <button
                 type="button"
-                className="button-primary border-red-500/40 bg-red-500 text-white hover:bg-red-500/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="button-primary flex-1 justify-center border-red-500/40 bg-red-500 text-white hover:bg-red-500/90 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!canDelete}
                 onClick={() => {
                   void deleteAccountAndSignOut()
@@ -400,7 +447,7 @@ function WorkspaceSettingsPage() {
                   </>
                 ) : (
                   <>
-                    Permanently delete account
+                    Delete account
                     <Trash2 className="size-4" />
                   </>
                 )}
@@ -409,24 +456,20 @@ function WorkspaceSettingsPage() {
                 type="button"
                 className="button-secondary disabled:opacity-50"
                 disabled={deleteState === 'deleting'}
-                onClick={() => {
-                  setConfirmOpen(false)
-                  setConfirmText('')
-                  setDeleteState('idle')
-                }}
+                onClick={closeDeleteModal}
               >
                 Cancel
               </button>
             </div>
 
             {deleteState === 'error' ? (
-              <p className="mt-3 text-sm text-red-400">
+              <p className="mt-4 text-sm text-red-400">
                 Couldn&apos;t delete your account. Please try again.
               </p>
             ) : null}
           </div>
-        )}
-      </article>
+        </div>
+      ) : null}
     </section>
   )
 }

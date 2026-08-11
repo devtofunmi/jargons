@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   Lock,
   ScanSearch,
+  X,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -29,19 +30,21 @@ export const Route = createFileRoute('/onboarding')({
 
     return {
       installed: Boolean(settings.installation),
-      accountLogin: settings.installation?.accountLogin ?? null,
-      firstRepo: repos[0]
-        ? { id: repos[0].id, fullName: repos[0].fullName }
-        : null,
+      accountLogin: settings.installation?.accountLogin ?? settings.workspace.slug,
+      repos: repos.map((repo) => ({ id: repo.id, fullName: repo.fullName })),
     }
   },
   component: OnboardingPage,
 })
 
 function OnboardingPage() {
-  const { installed, accountLogin, firstRepo } = Route.useLoaderData()
+  const { installed, accountLogin, repos } = Route.useLoaderData()
   const [busy, setBusy] = useState<'idle' | 'scanning' | 'leaving'>('idle')
   const [scanError, setScanError] = useState<string | null>(null)
+  const [scanModalOpen, setScanModalOpen] = useState(false)
+
+  const hasRepos = repos.length > 0
+  const githubReposUrl = `https://github.com/${accountLogin}?tab=repositories`
 
   async function dismissTo(destination: string) {
     setBusy('leaving')
@@ -53,9 +56,7 @@ function OnboardingPage() {
     window.location.assign(destination)
   }
 
-  async function runFirstScan() {
-    if (!firstRepo) return
-
+  async function scanRepository(repositoryId: string) {
     setBusy('scanning')
     setScanError(null)
 
@@ -63,7 +64,7 @@ function OnboardingPage() {
       const response = await fetch('/api/scans/start', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ repositoryId: firstRepo.id }),
+        body: JSON.stringify({ repositoryId }),
       })
 
       if (response.status === 202) {
@@ -86,6 +87,9 @@ function OnboardingPage() {
   }
 
   const leaving = busy === 'leaving'
+  const lockedLabel = !installed
+    ? 'Connect a repository first'
+    : 'No repositories synced yet'
 
   return (
     <main className="min-h-screen bg-[#070708] px-5 py-6 text-white sm:px-8">
@@ -118,26 +122,24 @@ function OnboardingPage() {
           Let&apos;s see Jargons review your code.
         </h1>
         <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-500 sm:text-base">
-          Pick where to start. Connect a repository first, then run a scan or
-          open a pull request to watch Jargons work — or skip and explore the
-          dashboard on your own.
+          Your GitHub App is connected. Run a scan on a repository you choose,
+          or open a pull request to watch Jargons review it — or skip and
+          explore the dashboard on your own.
         </p>
 
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {/* 1 — Connect */}
+          {/* 1 — Connect (already done by the time you reach onboarding) */}
           <OnboardingCard
             step="01"
             icon={
               <span className="grid size-11 place-items-center rounded-2xl border border-white/[0.07] bg-white/[0.03] text-amber-300">
-                <ArrowRight className="size-5" />
+                <Check className="size-5" />
               </span>
             }
             title="Connect a repository"
             description="Install the Jargons GitHub App and choose which repositories it can review."
             done={installed}
-            doneLabel={
-              accountLogin ? `Connected as ${accountLogin}` : 'Connected'
-            }
+            doneLabel={`Connected as ${accountLogin}`}
           >
             {!installed ? (
               <GitHubAppInstallButton
@@ -147,7 +149,7 @@ function OnboardingPage() {
             ) : null}
           </OnboardingCard>
 
-          {/* 2 — Run a scan */}
+          {/* 2 — Run a scan (user picks the repo) */}
           <OnboardingCard
             step="02"
             icon={
@@ -156,40 +158,25 @@ function OnboardingPage() {
               </span>
             }
             title="Run your first scan"
-            description="Scan a connected repository for bugs, security issues, and structural risks."
-            locked={!installed || !firstRepo}
-            lockedLabel={
-              !installed
-                ? 'Connect a repository first'
-                : 'No repositories synced yet'
-            }
+            description="Pick a connected repository and scan it for bugs, security issues, and structural risks."
+            locked={!installed || !hasRepos}
+            lockedLabel={lockedLabel}
           >
             <button
               type="button"
               className="button-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60"
               disabled={busy !== 'idle'}
               onClick={() => {
-                void runFirstScan()
+                setScanError(null)
+                setScanModalOpen(true)
               }}
             >
-              {busy === 'scanning' ? (
-                <>
-                  Starting scan...
-                  <LoaderCircle className="size-4 animate-spin" />
-                </>
-              ) : (
-                <>
-                  Run a scan
-                  <ScanSearch className="size-4" />
-                </>
-              )}
+              Choose a repository
+              <ScanSearch className="size-4" />
             </button>
-            {scanError ? (
-              <p className="mt-3 text-sm text-red-400">{scanError}</p>
-            ) : null}
           </OnboardingCard>
 
-          {/* 3 — Open a PR */}
+          {/* 3 — Open a PR (link out to GitHub) */}
           <OnboardingCard
             step="03"
             icon={
@@ -198,25 +185,19 @@ function OnboardingPage() {
               </span>
             }
             title="Open a pull request"
-            description="Open a PR in a connected repo — Jargons reviews it automatically and can suggest fixes."
-            locked={!installed || !firstRepo}
-            lockedLabel={
-              !installed
-                ? 'Connect a repository first'
-                : 'No repositories synced yet'
-            }
+            description="Open a PR in a repository Jargons watches — it reviews the diff automatically and can suggest fixes."
+            locked={!installed}
+            lockedLabel={lockedLabel}
           >
-            {firstRepo ? (
-              <a
-                className="button-secondary w-full justify-center"
-                href={`https://github.com/${firstRepo.fullName}/compare`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open a PR on GitHub
-                <ArrowRight className="size-4" />
-              </a>
-            ) : null}
+            <a
+              className="button-secondary w-full justify-center"
+              href={githubReposUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open GitHub repositories
+              <ArrowRight className="size-4" />
+            </a>
           </OnboardingCard>
         </div>
 
@@ -242,10 +223,68 @@ function OnboardingPage() {
             )}
           </button>
           <span className="text-sm text-zinc-600">
-            You can always connect and scan later from the dashboard.
+            You can always scan and open PRs later from the dashboard.
           </span>
         </div>
       </section>
+
+      {scanModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (busy !== 'scanning') setScanModalOpen(false)
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-[24px] border border-white/[0.1] bg-[#0c0c0f] p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium tracking-[-0.03em]">
+                Choose a repository to scan
+              </h2>
+              <button
+                type="button"
+                className="text-zinc-500 hover:text-zinc-200 disabled:opacity-40"
+                disabled={busy === 'scanning'}
+                onClick={() => setScanModalOpen(false)}
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 max-h-80 space-y-2 overflow-y-auto pr-1">
+              {repos.map((repo) => (
+                <button
+                  key={repo.id}
+                  type="button"
+                  disabled={busy === 'scanning'}
+                  onClick={() => {
+                    void scanRepository(repo.id)
+                  }}
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#09090b] p-3 text-left transition-colors hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="truncate font-mono text-sm text-zinc-300">
+                    {repo.fullName}
+                  </span>
+                  {busy === 'scanning' ? (
+                    <LoaderCircle className="size-4 shrink-0 animate-spin text-cyan-300" />
+                  ) : (
+                    <ScanSearch className="size-4 shrink-0 text-zinc-600" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {scanError ? (
+              <p className="mt-4 text-sm text-red-400">{scanError}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

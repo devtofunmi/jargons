@@ -42,7 +42,7 @@ function GitHubInstallCallbackPage() {
         )
 
         window.setTimeout(() => {
-          window.location.assign('/app/repositories')
+          window.location.assign('/onboarding')
         }, 900)
       } catch (error) {
         if (!active) return
@@ -113,21 +113,21 @@ function GitHubInstallCallbackPage() {
           </p>
         ) : null}
 
-        {isLoading ? (
+        {isLoading || isSuccess ? (
           <button
             type="button"
             disabled
             className="button-primary mt-7 w-full cursor-not-allowed justify-center opacity-60"
           >
-            Connecting...
+            {isSuccess ? 'Redirecting to onboarding...' : 'Connecting...'}
             <LoaderCircle className="size-4 animate-spin" />
           </button>
         ) : (
           <Link
             className="button-primary mt-7 w-full justify-center"
-            to={isSuccess ? '/app/repositories' : '/auth/connect'}
+            to="/auth/connect"
           >
-            {isSuccess ? 'Open repositories' : 'Try installation again'}
+            Try installation again
             <ArrowRight className="size-4" />
           </Link>
         )}
