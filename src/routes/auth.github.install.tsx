@@ -42,7 +42,9 @@ function GitHubInstallCallbackPage() {
         )
 
         window.setTimeout(() => {
-          window.location.assign('/onboarding')
+          window.location.assign(
+            result.onboarded ? '/app/repositories' : '/onboarding',
+          )
         }, 900)
       } catch (error) {
         if (!active) return
