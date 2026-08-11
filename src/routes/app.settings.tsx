@@ -6,12 +6,15 @@ import {
   LoaderCircle,
   ScanSearch,
   ShieldCheck,
+  Trash2,
+  TriangleAlert,
   Users,
 } from 'lucide-react'
 import { useState } from 'react'
 
 import { GitHubAppInstallButton } from '../components/github-app-install-button'
 import { AppPageSkeleton } from '../components/skeletons'
+import { deleteAccount } from '../server/account'
 import {
   getWorkspaceSettings,
   updateReviewPreferences,
@@ -73,6 +76,31 @@ function WorkspaceSettingsPage() {
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
+
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleteState, setDeleteState] = useState<'idle' | 'deleting' | 'error'>(
+    'idle',
+  )
+
+  // Require the user to type their exact GitHub username before the delete
+  // button is enabled — a deliberate, hard-to-fat-finger confirmation.
+  const confirmPhrase = settings.owner.username
+  const canDelete =
+    confirmText.trim() === confirmPhrase && deleteState !== 'deleting'
+
+  async function deleteAccountAndSignOut() {
+    setDeleteState('deleting')
+
+    try {
+      await deleteAccount()
+      // Full reload so all in-memory router/query state is dropped and the
+      // (now signed-out) landing page loads fresh.
+      window.location.assign('/')
+    } catch {
+      setDeleteState('error')
+    }
+  }
 
   const isDirty =
     preferences.reviewPullRequests !== savedPreferences.reviewPullRequests ||
@@ -310,6 +338,95 @@ function WorkspaceSettingsPage() {
           )}
         </article>
       </div>
+
+      <article className="app-card mt-6 border-red-500/25 p-5 sm:p-6">
+        <div className="flex items-center gap-2">
+          <TriangleAlert className="size-4 text-red-400" />
+          <h2 className="text-lg font-medium tracking-[-0.03em]">Danger zone</h2>
+        </div>
+
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-500">
+          Deleting your account permanently removes your workspace, connected
+          repositories, pull request reviews, findings, and codebase scans, and
+          uninstalls the Jargons GitHub App from your account. This cannot be
+          undone.
+        </p>
+
+        {!confirmOpen ? (
+          <button
+            type="button"
+            className="button-secondary mt-6 border-red-500/30 text-red-300 hover:bg-red-500/10"
+            onClick={() => {
+              setConfirmOpen(true)
+              setDeleteState('idle')
+            }}
+          >
+            Delete account
+            <Trash2 className="size-4" />
+          </button>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-5">
+            <label className="block">
+              <span className="text-sm text-zinc-400">
+                Type{' '}
+                <span className="font-mono font-semibold text-zinc-200">
+                  {confirmPhrase}
+                </span>{' '}
+                to confirm.
+              </span>
+              <input
+                type="text"
+                autoComplete="off"
+                value={confirmText}
+                onChange={(event) => setConfirmText(event.target.value)}
+                className="mt-3 block w-full rounded-2xl border border-white/[0.1] bg-[#09090b] px-4 py-3 font-mono text-sm text-zinc-200 outline-none focus:border-red-500/40"
+                placeholder={confirmPhrase}
+              />
+            </label>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="button-primary border-red-500/40 bg-red-500 text-white hover:bg-red-500/90 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canDelete}
+                onClick={() => {
+                  void deleteAccountAndSignOut()
+                }}
+              >
+                {deleteState === 'deleting' ? (
+                  <>
+                    Deleting...
+                    <LoaderCircle className="size-4 animate-spin" />
+                  </>
+                ) : (
+                  <>
+                    Permanently delete account
+                    <Trash2 className="size-4" />
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                className="button-secondary disabled:opacity-50"
+                disabled={deleteState === 'deleting'}
+                onClick={() => {
+                  setConfirmOpen(false)
+                  setConfirmText('')
+                  setDeleteState('idle')
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+
+            {deleteState === 'error' ? (
+              <p className="mt-3 text-sm text-red-400">
+                Couldn&apos;t delete your account. Please try again.
+              </p>
+            ) : null}
+          </div>
+        )}
+      </article>
     </section>
   )
 }
