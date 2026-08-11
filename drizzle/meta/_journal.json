@@ -15,6 +15,13 @@
       "when": 1786456097476,
       "tag": "0001_add_users_onboarded_at",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786470032489,
+      "tag": "0002_add_workspaces_runs_period_start",
+      "breakpoints": true
     }
   ]
 }

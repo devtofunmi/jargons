@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "runs_period_start" timestamp with time zone;
