@@ -141,7 +141,43 @@ export const completeGitHubAppInstallation = createServerFn({ method: 'POST' })
     return {
       accountLogin,
       syncedRepositories,
+      // Already-onboarded users (e.g. updating repo access) shouldn't be sent
+      // back through onboarding after installing.
+      onboarded: Boolean(currentUser.onboardedAt),
     }
+  })
+
+// Pause or resume Jargons watching a single repository. Paused repositories are
+// skipped by the pull-request webhook.
+export const setRepositoryWatching = createServerFn({ method: 'POST' })
+  .validator((input: { repositoryId: string; watching: boolean }) => input)
+  .handler(async ({ data }) => {
+    const currentUser = await getCurrentUserFromCookie()
+
+    if (!currentUser?.workspace) {
+      throw new Error('Sign in to change repository settings.')
+    }
+
+    const [{ and, eq }, { db }, { repositories }] = await Promise.all([
+      import('drizzle-orm'),
+      import('../db/client'),
+      import('../db/schema'),
+    ])
+
+    await db
+      .update(repositories)
+      .set({
+        status: data.watching ? 'watching' : 'paused',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(repositories.id, data.repositoryId),
+          eq(repositories.workspaceId, currentUser.workspace.id),
+        ),
+      )
+
+    return { ok: true }
   })
 
 export const getSyncedRepositories = createServerFn({ method: 'GET' }).handler(
