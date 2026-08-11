@@ -11,7 +11,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { GitHubAppInstallButton } from '../components/github-app-install-button'
 import { AppPageSkeleton } from '../components/skeletons'
@@ -89,6 +89,16 @@ function WorkspaceSettingsPage() {
   const confirmPhrase = settings.owner.username
   const canDelete =
     confirmText.trim() === confirmPhrase && deleteState !== 'deleting'
+
+  // Lock page scroll while the delete-account modal is open.
+  useEffect(() => {
+    if (!confirmOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [confirmOpen])
 
   function closeDeleteModal() {
     setConfirmOpen(false)
