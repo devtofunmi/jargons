@@ -1,17 +1,26 @@
-import { createFileRoute, Link, notFound } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Link,
+  notFound,
+  useRouter,
+} from '@tanstack/react-router'
 import {
   ArrowLeft,
   ArrowRight,
   Check,
   GitPullRequest,
+  LoaderCircle,
   Minus,
+  Pause,
+  Play,
   Radar,
   ScanSearch,
-  Settings2,
 } from 'lucide-react'
+import { useState } from 'react'
 
 import { DetailPageSkeleton } from '../components/skeletons'
-import { getSyncedRepository } from '../server/github-app'
+import { ScanModal } from '../components/scan-modal'
+import { getSyncedRepository, setRepositoryWatching } from '../server/github-app'
 import { getRepositoryReviewRuns } from '../server/reviews'
 import { getWorkspaceSettings } from '../server/workspace'
 
@@ -52,6 +61,24 @@ function RepositoryDetailPage() {
     reviews: repoReviews,
     preferences,
   } = Route.useLoaderData()
+  const router = useRouter()
+  const [scanOpen, setScanOpen] = useState(false)
+  const [pausing, setPausing] = useState(false)
+
+  const isPaused = repository.status === 'paused'
+  const repoForScan = { id: repository.id, fullName: repository.fullName }
+
+  async function toggleWatching() {
+    setPausing(true)
+    try {
+      await setRepositoryWatching({
+        data: { repositoryId: repository.id, watching: isPaused },
+      })
+      await router.invalidate()
+    } finally {
+      setPausing(false)
+    }
+  }
 
   const reviewRules = [
     {
@@ -94,10 +121,43 @@ function RepositoryDetailPage() {
             configuration.
           </p>
         </div>
-        <Link className="button-primary self-start" to="/app/settings">
-          <Settings2 className="size-4" />
-          Configure repository
-        </Link>
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            className="button-primary disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isPaused}
+            title={isPaused ? 'Resume watching to run a scan' : undefined}
+            onClick={() => setScanOpen(true)}
+          >
+            <ScanSearch className="size-4" />
+            Run a scan
+          </button>
+          <button
+            type="button"
+            className="button-secondary disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={pausing}
+            onClick={() => {
+              void toggleWatching()
+            }}
+          >
+            {pausing ? (
+              <>
+                Saving...
+                <LoaderCircle className="size-4 animate-spin" />
+              </>
+            ) : isPaused ? (
+              <>
+                <Play className="size-4" />
+                Resume watching
+              </>
+            ) : (
+              <>
+                <Pause className="size-4" />
+                Pause watching
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="mt-10 grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -216,6 +276,13 @@ function RepositoryDetailPage() {
           ))}
         </div>
       </article>
+
+      <ScanModal
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        repos={[repoForScan]}
+        initialRepo={repoForScan}
+      />
     </section>
   )
 }

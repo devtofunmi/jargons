@@ -129,7 +129,10 @@ export async function handlePullRequestEvent(
   }
 
   const repositoryRows = await db
-    .select({ id: schema.repositories.id })
+    .select({
+      id: schema.repositories.id,
+      status: schema.repositories.status,
+    })
     .from(schema.repositories)
     .where(
       and(
@@ -143,6 +146,10 @@ export async function handlePullRequestEvent(
 
   if (!repositoryId) {
     return { handled: false, reason: 'repository not synced' }
+  }
+
+  if (repositoryRows[0]?.status === 'paused') {
+    return { handled: false, reason: 'repository paused' }
   }
 
   // Freemium gate: a free workspace gets one lifetime agent run. Once used,

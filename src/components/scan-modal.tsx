@@ -24,11 +24,15 @@ export function ScanModal({
   onClose,
   repos,
   onScanStarted,
+  initialRepo,
 }: {
   open: boolean
   onClose: () => void
   repos: ScanModalRepo[]
   onScanStarted?: (scanId: string) => void
+  // When set, the modal opens straight to the confirm step for this repo,
+  // skipping the picker (used from a single repository's page).
+  initialRepo?: ScanModalRepo
 }) {
   const [step, setStep] = useState<Step>('list')
   const [selected, setSelected] = useState<ScanModalRepo | null>(null)
@@ -40,13 +44,13 @@ export function ScanModal({
   // Reset to a fresh state every time the modal opens.
   useEffect(() => {
     if (!open) return
-    setStep('list')
-    setSelected(null)
+    setStep(initialRepo ? 'confirm' : 'list')
+    setSelected(initialRepo ?? null)
     setScanId(null)
     setResult(null)
     setErrorMsg(null)
     setQuery('')
-  }, [open])
+  }, [open, initialRepo])
 
   // Lock page scroll while open.
   useEffect(() => {
@@ -122,6 +126,14 @@ export function ScanModal({
         return
       }
 
+      if (response.status === 409) {
+        setErrorMsg(
+          'This repository is paused. Resume watching it to run a scan.',
+        )
+        setStep('error')
+        return
+      }
+
       setErrorMsg('Could not start the scan. Please try again.')
       setStep('error')
     } catch {
@@ -162,7 +174,7 @@ export function ScanModal({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {step === 'confirm' ? (
+            {step === 'confirm' && !initialRepo ? (
               <button
                 type="button"
                 className="text-zinc-500 hover:text-zinc-200"
@@ -345,9 +357,9 @@ export function ScanModal({
             <button
               type="button"
               className="button-secondary mt-6 w-full justify-center"
-              onClick={() => setStep('list')}
+              onClick={() => setStep(initialRepo ? 'confirm' : 'list')}
             >
-              Back to repositories
+              {initialRepo ? 'Try again' : 'Back to repositories'}
             </button>
           </div>
         ) : null}
