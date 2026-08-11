@@ -126,6 +126,14 @@ export function ScanModal({
         return
       }
 
+      if (response.status === 409) {
+        setErrorMsg(
+          'This repository is paused. Resume watching it to run a scan.',
+        )
+        setStep('error')
+        return
+      }
+
       setErrorMsg('Could not start the scan. Please try again.')
       setStep('error')
     } catch {
