@@ -1,5 +1,9 @@
 # Jargons — AI code review that gets your code
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![CI](https://github.com/devtofunmi/jargons/actions/workflows/ci.yml/badge.svg)](https://github.com/devtofunmi/jargons/actions/workflows/ci.yml)
+
 Jargons is an AI agent that reviews GitHub pull requests and scans whole codebases for bugs, security issues, and structural risks — then opens a pull request that applies the fixes.
 
 Install the GitHub App, and every pull request gets an automatic review: findings with severity and file locations posted as a comment, plus a companion PR that applies the suggested fixes for you to review and merge.
@@ -78,10 +82,31 @@ Open a pull request on a connected repo → watch the review appear on the PR, w
 
 ## Repository layout
 
-| Path | What's there |
-|---|---|
-| `src/server/review-engine/` | PR review agent (github, llm, orchestrator) |
-| `src/server/review-engine/open-fix-pr.ts` | Opens a PR that applies review fixes |
-| `src/server/scan-engine/` | Codebase scan agent |
-| `src/server/scans.ts` | Scan queries + user-initiated scan fix PRs |
-| `src/routes/api.github.webhook.tsx` | Webhook ingestion (HMAC-verified) |
+| Path                                      | What's there                                |
+| ----------------------------------------- | ------------------------------------------- |
+| `src/server/review-engine/`               | PR review agent (github, llm, orchestrator) |
+| `src/server/review-engine/open-fix-pr.ts` | Opens a PR that applies review fixes        |
+| `src/server/scan-engine/`                 | Codebase scan agent                         |
+| `src/server/scans.ts`                     | Scan queries + user-initiated scan fix PRs  |
+| `src/routes/api.github.webhook.tsx`       | Webhook ingestion (HMAC-verified)           |
+
+---
+
+## Contributing
+
+Contributions are welcome — bugs, features, docs, and fixes. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md) for local setup and the PR workflow, and note
+the [Code of Conduct](CODE_OF_CONDUCT.md). Good first steps:
+
+- Grab an issue labelled `good first issue` or `help wanted`.
+- Open an issue before large changes so we can agree on the approach.
+- Run `npm run lint` before opening a PR (`npm run format` auto-formats).
+
+## Security
+
+Found a vulnerability? Please report it privately — see
+[SECURITY.md](SECURITY.md). Don't open a public issue for security problems.
+
+## License
+
+[MIT](LICENSE) © devtofunmi
