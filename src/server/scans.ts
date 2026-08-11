@@ -353,7 +353,13 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
         }
 
         const branch = `jargons/fix-scan-${data.scanId.slice(0, 8)}`
-        await createBranch({ installationId, owner, repo, branch, fromSha: headSha })
+        await createBranch({
+          installationId,
+          owner,
+          repo,
+          branch,
+          fromSha: headSha,
+        })
 
         for (const fix of fixes) {
           const current = await fetchFileAtRef({
@@ -394,12 +400,14 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
       } catch (error) {
         span.setStatus({
           code: SpanStatusCode.ERROR,
-          message: error instanceof Error ? error.message : 'open scan fix PR failed',
+          message:
+            error instanceof Error ? error.message : 'open scan fix PR failed',
         })
         span.recordException(error as Error)
         return {
           url: null,
-          reason: error instanceof Error ? error.message : 'Could not open fix PR.',
+          reason:
+            error instanceof Error ? error.message : 'Could not open fix PR.',
         }
       } finally {
         span.end()

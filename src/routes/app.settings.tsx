@@ -71,9 +71,7 @@ const reviewPreferenceItems: Array<{
 function WorkspaceSettingsPage() {
   const settings = Route.useLoaderData()
   const [preferences, setPreferences] = useState(settings.preferences)
-  const [savedPreferences, setSavedPreferences] = useState(
-    settings.preferences,
-  )
+  const [savedPreferences, setSavedPreferences] = useState(settings.preferences)
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
@@ -153,7 +151,9 @@ function WorkspaceSettingsPage() {
         </div>
         <button
           className="button-primary self-start disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={saveState === 'saving' || (!isDirty && saveState !== 'error')}
+          disabled={
+            saveState === 'saving' || (!isDirty && saveState !== 'error')
+          }
           onClick={() => {
             void saveChanges()
           }}
@@ -320,8 +320,8 @@ function WorkspaceSettingsPage() {
                 {settings.installation.accountLogin} connected
               </h3>
               <p className="mt-3 text-sm leading-7 text-zinc-500">
-                Jargons can read pull request diffs, create review comments,
-                and run codebase scans for {settings.repositoryCount} selected{' '}
+                Jargons can read pull request diffs, create review comments, and
+                run codebase scans for {settings.repositoryCount} selected{' '}
                 {settings.repositoryCount === 1 ? 'repository' : 'repositories'}
                 .
               </p>
@@ -359,7 +359,9 @@ function WorkspaceSettingsPage() {
       <article className="app-card mt-6 border-red-500/25 p-5 sm:p-6">
         <div className="flex items-center gap-2">
           <TriangleAlert className="size-4 text-red-400" />
-          <h2 className="text-lg font-medium tracking-[-0.03em]">Danger zone</h2>
+          <h2 className="text-lg font-medium tracking-[-0.03em]">
+            Danger zone
+          </h2>
         </div>
 
         <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-500">

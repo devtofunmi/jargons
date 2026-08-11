@@ -39,8 +39,8 @@ function UpgradeSuccessPage() {
         </a>
 
         <p className="mt-6 text-[11px] leading-5 text-zinc-700">
-          It can take a few seconds for your plan to update. If you still see the
-          free banner, refresh the dashboard.
+          It can take a few seconds for your plan to update. If you still see
+          the free banner, refresh the dashboard.
         </p>
       </div>
     </main>

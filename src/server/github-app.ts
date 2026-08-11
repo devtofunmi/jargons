@@ -255,7 +255,10 @@ export const getSyncedRepository = createServerFn({ method: 'GET' })
 
     const stats = await loadRepositoryStats(currentUser.workspace.id)
 
-    return toSyncedRepository(repositoryRows[0], stats.get(repositoryRows[0].id))
+    return toSyncedRepository(
+      repositoryRows[0],
+      stats.get(repositoryRows[0].id),
+    )
   })
 
 async function syncInstallationRepositories({

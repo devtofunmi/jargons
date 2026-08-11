@@ -101,7 +101,10 @@ export async function openFixPr(
         head: branch,
         base: input.headRef,
         title: `Jargons: apply suggested fixes for #${input.prNumber}`,
-        body: fixBody(fixes.map((f) => f.path), input.prNumber),
+        body: fixBody(
+          fixes.map((f) => f.path),
+          input.prNumber,
+        ),
       })
 
       span.setAttribute('jargons.fix_pr_opened', Boolean(url))

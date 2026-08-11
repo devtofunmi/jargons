@@ -35,7 +35,11 @@ export type RunReviewInput = {
 // Cap a best-effort step so it can never block the review: resolves the
 // fallback if the promise hasn't settled within `ms` (the underlying work is
 // abandoned, not awaited further).
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T,
+): Promise<T> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(fallback), ms)
     promise.then(

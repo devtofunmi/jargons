@@ -34,8 +34,9 @@ function PrivacyPage() {
         <p>
           When you install the Jargons GitHub App, we access only the
           repositories you select. Through GitHub we read repository metadata,
-          file contents, and pull request diffs, and we write review comments and
-          fix pull requests. We never access repositories you have not connected.
+          file contents, and pull request diffs, and we write review comments
+          and fix pull requests. We never access repositories you have not
+          connected.
         </p>
         <p>
           When you sign in, we receive your public GitHub profile (username,
@@ -48,9 +49,9 @@ function PrivacyPage() {
         <p>
           To review a pull request or scan a codebase, Jargons sends the
           relevant diffs and file contents to our large language model provider
-          (currently Google Gemini) to generate the findings and suggested fixes.
-          Jargons itself does not retain your source code beyond producing the
-          review, and does not use it to train any model.
+          (currently Google Gemini) to generate the findings and suggested
+          fixes. Jargons itself does not retain your source code beyond
+          producing the review, and does not use it to train any model.
         </p>
         <p>
           Your content is processed by Google under the{' '}

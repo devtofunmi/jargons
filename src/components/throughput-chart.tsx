@@ -40,8 +40,8 @@ export function ThroughputChart({ data }: { data: ThroughputPoint[] }) {
         </div>
       ) : (
         <p className="mt-6 font-mono text-xs text-zinc-600">
-          No agent runs in the last 24 hours. Open a pull request or start a scan
-          to see live throughput.
+          No agent runs in the last 24 hours. Open a pull request or start a
+          scan to see live throughput.
         </p>
       )}
     </article>
@@ -70,7 +70,10 @@ function ThroughputBars({ data }: { data: ThroughputPoint[] }) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={rows} margin={{ top: 12, right: 14, bottom: 0, left: -14 }}>
+      <AreaChart
+        data={rows}
+        margin={{ top: 12, right: 14, bottom: 0, left: -14 }}
+      >
         <defs>
           <linearGradient id="grad-reviews" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={REVIEW_COLOR} stopOpacity={0.4} />
@@ -119,7 +122,12 @@ function ThroughputBars({ data }: { data: ThroughputPoint[] }) {
           strokeWidth={2}
           fill="url(#grad-reviews)"
           dot={false}
-          activeDot={{ r: 4, strokeWidth: 2, stroke: REVIEW_COLOR, fill: '#0d0d10' }}
+          activeDot={{
+            r: 4,
+            strokeWidth: 2,
+            stroke: REVIEW_COLOR,
+            fill: '#0d0d10',
+          }}
         />
         <Area
           type="monotone"
@@ -130,7 +138,12 @@ function ThroughputBars({ data }: { data: ThroughputPoint[] }) {
           strokeWidth={2}
           fill="url(#grad-scans)"
           dot={false}
-          activeDot={{ r: 4, strokeWidth: 2, stroke: SCAN_COLOR, fill: '#0d0d10' }}
+          activeDot={{
+            r: 4,
+            strokeWidth: 2,
+            stroke: SCAN_COLOR,
+            fill: '#0d0d10',
+          }}
         />
       </AreaChart>
     </ResponsiveContainer>

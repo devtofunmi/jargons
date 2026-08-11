@@ -41,7 +41,10 @@ export async function generateFixes({
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+          headers: {
+            'content-type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: 'user', parts: [{ text: userPrompt(files) }] }],

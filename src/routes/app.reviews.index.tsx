@@ -63,9 +63,18 @@ function ReviewsPage() {
       </div>
 
       <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <ReviewMetric label="complete" value={padCount(countByStatus('complete'))} />
-        <ReviewMetric label="running" value={padCount(countByStatus('running'))} />
-        <ReviewMetric label="queued" value={padCount(countByStatus('queued'))} />
+        <ReviewMetric
+          label="complete"
+          value={padCount(countByStatus('complete'))}
+        />
+        <ReviewMetric
+          label="running"
+          value={padCount(countByStatus('running'))}
+        />
+        <ReviewMetric
+          label="queued"
+          value={padCount(countByStatus('queued'))}
+        />
       </div>
 
       {reviews.length === 0 ? (
@@ -75,8 +84,8 @@ function ReviewsPage() {
             No reviews yet
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-500">
-            Jargons reviews pull requests opened in your connected
-            repositories. Open a pull request and the review will appear here.
+            Jargons reviews pull requests opened in your connected repositories.
+            Open a pull request and the review will appear here.
           </p>
         </div>
       ) : (

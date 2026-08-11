@@ -13,9 +13,8 @@ export const Route = createFileRoute('/api/scans/start')({
         }
 
         // Freemium gate: a free workspace gets one lifetime agent run.
-        const { getWorkspaceBilling, incrementWorkspaceRuns } = await import(
-          '../server/billing'
-        )
+        const { getWorkspaceBilling, incrementWorkspaceRuns } =
+          await import('../server/billing')
         const billing = await getWorkspaceBilling(currentUser.workspace.id)
         if (!billing.canRun) {
           return json(

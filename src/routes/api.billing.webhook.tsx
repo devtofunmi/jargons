@@ -96,10 +96,14 @@ async function handleEvent(event: BachsEvent): Promise<void> {
       customerId,
       subscriptionId: event.data?.subscription_id,
     })
-    console.log(`[billing] subscription created → workspace ${workspaceId} is pro`)
+    console.log(
+      `[billing] subscription created → workspace ${workspaceId} is pro`,
+    )
   } else if (event.type === 'customer.subscription.deleted') {
     await downgradeWorkspace(workspaceId)
-    console.log(`[billing] subscription canceled → workspace ${workspaceId} is free`)
+    console.log(
+      `[billing] subscription canceled → workspace ${workspaceId} is free`,
+    )
   }
 }
 

@@ -24,11 +24,7 @@ import {
   reviewCodeLines,
   workflowSteps,
 } from '../data/landing-page'
-import type {
-  CodeLineData,
-  FeatureKey,
-  FooterLink,
-} from '../data/landing-page'
+import type { CodeLineData, FeatureKey, FooterLink } from '../data/landing-page'
 import { getGitHubAppStatus } from '../server/github-app'
 
 export const Route = createFileRoute('/')({
