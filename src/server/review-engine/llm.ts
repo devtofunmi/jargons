@@ -36,9 +36,11 @@ export type ReviewDiffResult = {
 // USD per 1M tokens. Free-tier models are 0 but still tracked so the cost
 // metric works unchanged when a paid model is swapped in via env.
 const PRICING = new Map<string, { input: number; output: number }>([
-  ['gemini-2.0-flash', { input: 0, output: 0 }],
-  ['gemini-2.5-flash', { input: 0, output: 0 }],
-  ['gemini-1.5-flash', { input: 0, output: 0 }],
+  // USD per 1M tokens (paid tier, priced 2026-07). Free tier bills $0 but we
+  // track real rates so cost metrics hold once billing is enabled.
+  ['gemini-2.0-flash', { input: 0.1, output: 0.4 }],
+  ['gemini-2.5-flash', { input: 0.3, output: 2.5 }],
+  ['gemini-1.5-flash', { input: 0.075, output: 0.3 }],
 ])
 
 const SEVERITIES: ReviewSeverity[] = [
@@ -204,6 +206,10 @@ async function callGemini(model: string, input: ReviewDiffInput) {
       temperature: 0.1,
       responseMimeType: 'application/json',
       responseSchema: RESPONSE_SCHEMA,
+      // Bound cost: the findings JSON is small, and disabling "thinking" avoids
+      // the 2-5x output-token multiplier that bills at the output rate.
+      maxOutputTokens: 8192,
+      thinkingConfig: { thinkingBudget: 0 },
     },
   })
 
