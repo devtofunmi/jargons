@@ -1,21 +1,27 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
   GitPullRequest,
   LoaderCircle,
   Lock,
   ScanSearch,
+  TriangleAlert,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { GitHubAppInstallButton } from '../components/github-app-install-button'
 import { OwlMark } from '../components/owl-mark'
 import { FullPageLoader } from '../components/skeletons'
 import { getSyncedRepositories } from '../server/github-app'
 import { markOnboarded } from '../server/onboarding'
+import { getCodebaseScan } from '../server/scans'
 import { getWorkspaceSettings } from '../server/workspace'
+
+type Repo = { id: string; fullName: string }
+type ScanStep = 'list' | 'confirm' | 'scanning' | 'done' | 'error'
 
 export const Route = createFileRoute('/onboarding')({
   pendingComponent: FullPageLoader,
@@ -39,15 +45,64 @@ export const Route = createFileRoute('/onboarding')({
 
 function OnboardingPage() {
   const { installed, accountLogin, repos } = Route.useLoaderData()
-  const [busy, setBusy] = useState<'idle' | 'scanning' | 'leaving'>('idle')
-  const [scanError, setScanError] = useState<string | null>(null)
-  const [scanModalOpen, setScanModalOpen] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [step, setStep] = useState<ScanStep>('list')
+  const [selected, setSelected] = useState<Repo | null>(null)
+  const [scanId, setScanId] = useState<string | null>(null)
+  const [result, setResult] = useState<{ findingsCount: number } | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const hasRepos = repos.length > 0
   const githubReposUrl = `https://github.com/${accountLogin}?tab=repositories`
 
+  // Lock page scroll while the modal is open.
+  useEffect(() => {
+    if (!modalOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [modalOpen])
+
+  // Poll the scan until it completes or fails, so the whole run happens in the
+  // modal instead of navigating away immediately.
+  useEffect(() => {
+    if (step !== 'scanning' || !scanId) return
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+
+    const poll = async () => {
+      try {
+        const scan = await getCodebaseScan({ data: { scanId } })
+        if (!active) return
+        if (scan?.status === 'complete') {
+          setResult({ findingsCount: scan.findingsCount })
+          setStep('done')
+          return
+        }
+        if (scan?.status === 'failed') {
+          setErrorMsg('The scan failed. You can try again.')
+          setStep('error')
+          return
+        }
+      } catch {
+        // transient — keep polling
+      }
+      timer = setTimeout(() => void poll(), 2500)
+    }
+
+    timer = setTimeout(() => void poll(), 1500)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [step, scanId])
+
   async function dismissTo(destination: string) {
-    setBusy('leaving')
+    setLeaving(true)
     try {
       await markOnboarded()
     } catch {
@@ -56,37 +111,52 @@ function OnboardingPage() {
     window.location.assign(destination)
   }
 
-  async function scanRepository(repositoryId: string) {
-    setBusy('scanning')
-    setScanError(null)
+  function openScanModal() {
+    setSelected(null)
+    setScanId(null)
+    setResult(null)
+    setErrorMsg(null)
+    setStep('list')
+    setModalOpen(true)
+  }
+
+  function closeScanModal() {
+    if (step === 'scanning') return
+    setModalOpen(false)
+  }
+
+  async function startScan() {
+    if (!selected) return
+    setErrorMsg(null)
+    setStep('scanning')
 
     try {
       const response = await fetch('/api/scans/start', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ repositoryId }),
+        body: JSON.stringify({ repositoryId: selected.id }),
       })
 
       if (response.status === 202) {
-        const { scanId } = (await response.json()) as { scanId: string }
-        await markOnboarded()
-        window.location.assign(`/app/scans/${scanId}`)
+        const { scanId: id } = (await response.json()) as { scanId: string }
+        // Starting a scan counts as onboarded, regardless of what they do next.
+        void markOnboarded()
+        setScanId(id)
         return
       }
 
-      setScanError(
+      setErrorMsg(
         response.status === 402
           ? "You've used your free run. Upgrade to run more scans."
           : 'Could not start the scan. Please try again.',
       )
+      setStep('error')
     } catch {
-      setScanError('Could not start the scan. Please try again.')
+      setErrorMsg('Could not start the scan. Please try again.')
+      setStep('error')
     }
-
-    setBusy('idle')
   }
 
-  const leaving = busy === 'leaving'
   const lockedLabel = !installed
     ? 'Connect a repository first'
     : 'No repositories synced yet'
@@ -128,7 +198,6 @@ function OnboardingPage() {
         </p>
 
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
-          {/* 1 — Connect (already done by the time you reach onboarding) */}
           <OnboardingCard
             step="01"
             icon={
@@ -149,7 +218,6 @@ function OnboardingPage() {
             ) : null}
           </OnboardingCard>
 
-          {/* 2 — Run a scan (user picks the repo) */}
           <OnboardingCard
             step="02"
             icon={
@@ -164,19 +232,14 @@ function OnboardingPage() {
           >
             <button
               type="button"
-              className="button-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={busy !== 'idle'}
-              onClick={() => {
-                setScanError(null)
-                setScanModalOpen(true)
-              }}
+              className="button-primary w-full justify-center"
+              onClick={openScanModal}
             >
               Choose a repository
               <ScanSearch className="size-4" />
             </button>
           </OnboardingCard>
 
-          {/* 3 — Open a PR (link out to GitHub) */}
           <OnboardingCard
             step="03"
             icon={
@@ -228,59 +291,173 @@ function OnboardingPage() {
         </div>
       </section>
 
-      {scanModalOpen ? (
+      {modalOpen ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
           role="dialog"
           aria-modal="true"
-          onClick={() => {
-            if (busy !== 'scanning') setScanModalOpen(false)
-          }}
+          onClick={closeScanModal}
         >
           <div
             className="w-full max-w-md rounded-[24px] border border-white/[0.1] bg-[#0c0c0f] p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium tracking-[-0.03em]">
-                Choose a repository to scan
-              </h2>
-              <button
-                type="button"
-                className="text-zinc-500 hover:text-zinc-200 disabled:opacity-40"
-                disabled={busy === 'scanning'}
-                onClick={() => setScanModalOpen(false)}
-                aria-label="Close"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <div className="mt-5 max-h-80 space-y-2 overflow-y-auto pr-1">
-              {repos.map((repo) => (
+              <div className="flex items-center gap-2">
+                {step === 'confirm' ? (
+                  <button
+                    type="button"
+                    className="text-zinc-500 hover:text-zinc-200"
+                    onClick={() => setStep('list')}
+                    aria-label="Back"
+                  >
+                    <ArrowLeft className="size-5" />
+                  </button>
+                ) : null}
+                <h2 className="text-lg font-medium tracking-[-0.03em]">
+                  {step === 'list'
+                    ? 'Choose a repository to scan'
+                    : step === 'confirm'
+                      ? 'Scan this repository?'
+                      : step === 'scanning'
+                        ? 'Scanning…'
+                        : step === 'done'
+                          ? 'Scan complete'
+                          : 'Scan failed'}
+                </h2>
+              </div>
+              {step !== 'scanning' ? (
                 <button
-                  key={repo.id}
                   type="button"
-                  disabled={busy === 'scanning'}
-                  onClick={() => {
-                    void scanRepository(repo.id)
-                  }}
-                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#09090b] p-3 text-left transition-colors hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="text-zinc-500 hover:text-zinc-200"
+                  onClick={closeScanModal}
+                  aria-label="Close"
                 >
-                  <span className="truncate font-mono text-sm text-zinc-300">
-                    {repo.fullName}
-                  </span>
-                  {busy === 'scanning' ? (
-                    <LoaderCircle className="size-4 shrink-0 animate-spin text-cyan-300" />
-                  ) : (
-                    <ScanSearch className="size-4 shrink-0 text-zinc-600" />
-                  )}
+                  <X className="size-5" />
                 </button>
-              ))}
+              ) : null}
             </div>
 
-            {scanError ? (
-              <p className="mt-4 text-sm text-red-400">{scanError}</p>
+            {step === 'list' ? (
+              <div className="mt-5 max-h-80 space-y-2 overflow-y-auto pr-1 [scrollbar-color:rgba(255,255,255,0.15)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5">
+                {repos.map((repo) => (
+                  <button
+                    key={repo.id}
+                    type="button"
+                    onClick={() => {
+                      setSelected(repo)
+                      setStep('confirm')
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#09090b] p-3 text-left transition-colors hover:bg-white/[0.03]"
+                  >
+                    <span className="truncate font-mono text-sm text-zinc-300">
+                      {repo.fullName}
+                    </span>
+                    <ArrowRight className="size-4 shrink-0 text-zinc-600" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {step === 'confirm' && selected ? (
+              <div className="mt-5">
+                <div className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#09090b] p-4">
+                  <span className="grid size-10 place-items-center rounded-xl border border-white/[0.07] bg-white/[0.03] text-cyan-300">
+                    <ScanSearch className="size-5" />
+                  </span>
+                  <span className="truncate font-mono text-sm text-zinc-200">
+                    {selected.fullName}
+                  </span>
+                </div>
+                <p className="mt-4 text-sm leading-6 text-zinc-500">
+                  Jargons will scan this repository for bugs, security issues,
+                  and structural risks. This uses one agent run.
+                </p>
+                <button
+                  type="button"
+                  className="button-primary mt-5 w-full justify-center"
+                  onClick={() => {
+                    void startScan()
+                  }}
+                >
+                  Start scan
+                  <ScanSearch className="size-4" />
+                </button>
+              </div>
+            ) : null}
+
+            {step === 'scanning' ? (
+              <div className="mt-6 flex flex-col items-center py-6 text-center">
+                <div className="relative grid size-28 place-items-center">
+                  <span className="absolute size-full animate-ping rounded-full bg-cyan-400/10" />
+                  <span className="absolute size-2/3 animate-ping rounded-full bg-cyan-400/15 [animation-delay:400ms]" />
+                  <span className="grid size-16 place-items-center rounded-full border border-cyan-300/30 bg-cyan-300/[0.08] text-cyan-300">
+                    <ScanSearch className="size-7 animate-pulse" />
+                  </span>
+                </div>
+                <p className="mt-6 text-sm font-medium text-zinc-200">
+                  Scanning {selected?.fullName}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">
+                  Reading the codebase and hunting for issues. This can take a
+                  minute — hang tight.
+                </p>
+                {scanId ? (
+                  <button
+                    type="button"
+                    className="mt-5 text-sm text-zinc-500 underline-offset-4 hover:text-zinc-300 hover:underline"
+                    onClick={() => window.location.assign(`/app/scans/${scanId}`)}
+                  >
+                    Taking a while? Continue in the dashboard →
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {step === 'done' ? (
+              <div className="mt-6 flex flex-col items-center py-4 text-center">
+                <span className="grid size-16 place-items-center rounded-full border border-emerald-300/30 bg-emerald-300/[0.1] text-emerald-300">
+                  <Check className="size-8" />
+                </span>
+                <p className="mt-5 text-sm font-medium text-zinc-200">
+                  Scanned {selected?.fullName}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">
+                  {result && result.findingsCount > 0
+                    ? `Found ${result.findingsCount} ${
+                        result.findingsCount === 1 ? 'issue' : 'issues'
+                      } worth a look.`
+                    : 'No issues found — nice and clean.'}
+                </p>
+                <button
+                  type="button"
+                  className="button-primary mt-6 w-full justify-center"
+                  onClick={() => {
+                    if (scanId) window.location.assign(`/app/scans/${scanId}`)
+                  }}
+                >
+                  View results in dashboard
+                  <ArrowRight className="size-4" />
+                </button>
+              </div>
+            ) : null}
+
+            {step === 'error' ? (
+              <div className="mt-6 flex flex-col items-center py-4 text-center">
+                <span className="grid size-16 place-items-center rounded-full border border-red-500/25 bg-red-500/[0.08] text-red-400">
+                  <TriangleAlert className="size-7" />
+                </span>
+                <p className="mt-5 text-sm leading-6 text-zinc-400">
+                  {errorMsg ?? 'Something went wrong.'}
+                </p>
+                <button
+                  type="button"
+                  className="button-secondary mt-6 w-full justify-center"
+                  onClick={() => setStep('list')}
+                >
+                  Back to repositories
+                </button>
+              </div>
             ) : null}
           </div>
         </div>
