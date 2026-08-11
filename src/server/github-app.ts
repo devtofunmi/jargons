@@ -390,6 +390,28 @@ export async function createInstallationAccessToken(installationId: string) {
   return token.token
 }
 
+// Uninstall the GitHub App from an account (removes the installation on
+// GitHub's side). Best-effort: returns false instead of throwing so callers
+// like account deletion are never blocked by a GitHub-side failure.
+export async function uninstallGitHubApp(
+  installationId: string,
+): Promise<boolean> {
+  try {
+    const jwt = await createGitHubAppJwt()
+    const response = await fetch(
+      `https://api.github.com/app/installations/${installationId}`,
+      {
+        method: 'DELETE',
+        headers: githubHeaders(`Bearer ${jwt}`),
+      },
+    )
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 async function createGitHubAppJwt() {
   const [{ createSign }, { Buffer }] = await Promise.all([
     import('node:crypto'),
