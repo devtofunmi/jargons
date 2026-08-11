@@ -124,7 +124,9 @@ function RepositoryDetailPage() {
         <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <button
             type="button"
-            className="button-primary"
+            className="button-primary disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isPaused}
+            title={isPaused ? 'Resume watching to run a scan' : undefined}
             onClick={() => setScanOpen(true)}
           >
             <ScanSearch className="size-4" />
