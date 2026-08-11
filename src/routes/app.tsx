@@ -17,15 +17,17 @@ export const Route = createFileRoute('/app')({
       throw redirect({ to: '/auth/sign-in' })
     }
 
-    // Onboarding gate: a signed-in user who hasn't installed the GitHub App yet
-    // is sent to the connect flow instead of an empty dashboard. Settings stays
-    // reachable so they can still manage or delete their account first.
-    if (!location.pathname.startsWith('/app/settings')) {
+    // Onboarding gate for users who haven't finished or skipped it yet:
+    // connect the GitHub App first, then land on the guided onboarding page.
+    // Settings stays reachable so they can still manage or delete their account.
+    if (!user.onboardedAt && !location.pathname.startsWith('/app/settings')) {
       const { installed } = await getGitHubAppStatus()
 
       if (!installed) {
         throw redirect({ to: '/auth/connect' })
       }
+
+      throw redirect({ to: '/onboarding' })
     }
 
     return { user }

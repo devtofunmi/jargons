@@ -29,6 +29,7 @@ export type CurrentUser = {
   name: string
   email: string | null
   avatarUrl: string | null
+  onboardedAt: string | null
   workspace: {
     id: string
     name: string
@@ -245,6 +246,7 @@ export async function getCurrentUserFromToken(
       name: users.name,
       email: users.email,
       avatarUrl: users.avatarUrl,
+      onboardedAt: users.onboardedAt,
       workspaceId: workspaces.id,
       workspaceName: workspaces.name,
       workspaceSlug: workspaces.slug,
@@ -272,6 +274,9 @@ export async function getCurrentUserFromToken(
     name: currentUser.name ?? currentUser.username,
     email: currentUser.email,
     avatarUrl: currentUser.avatarUrl,
+    onboardedAt: currentUser.onboardedAt
+      ? currentUser.onboardedAt.toISOString()
+      : null,
     workspace:
       currentUser.workspaceId &&
       currentUser.workspaceName &&
