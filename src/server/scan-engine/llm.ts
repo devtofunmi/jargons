@@ -17,9 +17,10 @@ export type ScanResult = {
 }
 
 const PRICING = new Map<string, { input: number; output: number }>([
-  ['gemini-2.0-flash', { input: 0, output: 0 }],
-  ['gemini-2.5-flash', { input: 0, output: 0 }],
-  ['gemini-1.5-flash', { input: 0, output: 0 }],
+  // USD per 1M tokens (paid tier, priced 2026-07).
+  ['gemini-2.0-flash', { input: 0.1, output: 0.4 }],
+  ['gemini-2.5-flash', { input: 0.3, output: 2.5 }],
+  ['gemini-1.5-flash', { input: 0.075, output: 0.3 }],
 ])
 
 const SEVERITIES: ReviewSeverity[] = [
@@ -119,6 +120,8 @@ async function callGemini(
         temperature: 0.1,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,
+        maxOutputTokens: 8192,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   })

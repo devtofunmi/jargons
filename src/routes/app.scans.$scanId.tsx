@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Check,
   Clock3,
   ExternalLink,
@@ -15,6 +16,7 @@ import { useState } from 'react'
 
 import { DetailPageSkeleton } from '../components/skeletons'
 import { timeAgo } from '../lib/format'
+import { getBilling } from '../server/billing'
 import { getCodebaseScan, openScanFixPr } from '../server/scans'
 import type { CodebaseScanDetail, CodebaseScanFinding } from '../server/scans'
 
@@ -22,13 +24,16 @@ export const Route = createFileRoute('/app/scans/$scanId')({
   component: ScanDetailPage,
   pendingComponent: DetailPageSkeleton,
   loader: async ({ params }) => {
-    const scan = await getCodebaseScan({ data: { scanId: params.scanId } })
+    const [scan, billing] = await Promise.all([
+      getCodebaseScan({ data: { scanId: params.scanId } }),
+      getBilling(),
+    ])
 
     if (!scan) {
       throw notFound()
     }
 
-    return scan
+    return { scan, canRun: billing?.canRun ?? false }
   },
 })
 
@@ -41,7 +46,7 @@ const severityStyles: Record<CodebaseScanFinding['severity'], string> = {
 }
 
 function ScanDetailPage() {
-  const scan = Route.useLoaderData()
+  const { scan, canRun } = Route.useLoaderData()
 
   return (
     <section className="mx-auto max-w-7xl">
@@ -73,7 +78,7 @@ function ScanDetailPage() {
         <div className="flex flex-col items-start gap-3 sm:items-end">
           <ScanStatusBadge status={scan.status} />
           {scan.status === 'complete' && scan.findingsCount > 0 ? (
-            <FixPrButton scanId={scan.id} />
+            <FixPrButton scanId={scan.id} canRun={canRun} />
           ) : null}
         </div>
       </div>
@@ -171,19 +176,35 @@ function ScanDetailPage() {
   )
 }
 
-function FixPrButton({ scanId }: { scanId: string }) {
+function FixPrButton({ scanId, canRun }: { scanId: string; canRun: boolean }) {
   const [state, setState] = useState<'idle' | 'opening' | 'done' | 'error'>(
     'idle',
   )
   const [url, setUrl] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
+  // Free tier used up: send the user to the pricing page instead of opening a
+  // fix PR.
+  function goToPricing() {
+    window.location.assign('/pricing')
+  }
+
   async function open() {
+    if (!canRun) {
+      goToPricing()
+      return
+    }
+
     setState('opening')
     setMessage(null)
 
     try {
       const result = await openScanFixPr({ data: { scanId } })
+
+      if (result.reason === 'upgrade_required') {
+        goToPricing()
+        return
+      }
 
       if (result.url) {
         setUrl(result.url)
@@ -212,11 +233,13 @@ function FixPrButton({ scanId }: { scanId: string }) {
     )
   }
 
+  const busy = state === 'opening'
+
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <button
         className="button-primary disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={state === 'opening'}
+        disabled={busy}
         onClick={() => {
           void open()
         }}
@@ -226,10 +249,15 @@ function FixPrButton({ scanId }: { scanId: string }) {
             Opening fix PR...
             <LoaderCircle className="size-4 animate-spin" />
           </>
-        ) : (
+        ) : canRun ? (
           <>
             Open fix PR with Jargons
             <GitPullRequest className="size-4" />
+          </>
+        ) : (
+          <>
+            Upgrade to open fix PR
+            <ArrowRight className="size-4" />
           </>
         )}
       </button>

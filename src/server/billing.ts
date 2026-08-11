@@ -5,24 +5,34 @@
 
 import { createServerFn } from '@tanstack/react-start'
 
+import { FREE_RUN_LIMIT, PRO_PRICE_USD, PRO_RUN_LIMIT } from '../lib/plans'
 import { getOptionalEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
 
-export const FREE_RUN_LIMIT = 1
+export { FREE_RUN_LIMIT, PRO_PRICE_USD, PRO_RUN_LIMIT }
 
 export type WorkspaceBilling = {
   plan: 'free' | 'pro'
   runsUsed: number
-  limit: number | null // null = unlimited
+  limit: number
   canRun: boolean
   upgradeUrl: string
 }
 
-// Where the PR "upgrade" comment sends people: the app's dashboard, which has
-// the Upgrade button that starts a workspace-linked Bachs checkout. (A raw
-// payment link can't carry the workspace id, so upgrades happen in-app.)
+// Where "upgrade" CTAs send people: the public pricing page, which explains the
+// plans and starts a workspace-linked Bachs checkout.
 export function getUpgradeUrl(): string {
-  return `${getOptionalEnv('APP_URL', 'http://localhost:3000')}/app`
+  return `${getOptionalEnv('APP_URL', 'http://localhost:3000')}/pricing`
+}
+
+// True when `periodStart` is in an earlier calendar month than now (UTC), i.e.
+// the monthly run quota should reset.
+function isStalePeriod(periodStart: Date | null, now: Date): boolean {
+  if (!periodStart) return true
+  return (
+    periodStart.getUTCFullYear() !== now.getUTCFullYear() ||
+    periodStart.getUTCMonth() !== now.getUTCMonth()
+  )
 }
 
 export async function getWorkspaceBilling(
@@ -35,25 +45,34 @@ export async function getWorkspaceBilling(
   ])
 
   const rows = await db
-    .select({ plan: workspaces.plan, runsUsed: workspaces.runsUsed })
+    .select({
+      plan: workspaces.plan,
+      runsUsed: workspaces.runsUsed,
+      runsPeriodStart: workspaces.runsPeriodStart,
+    })
     .from(workspaces)
     .where(eq(workspaces.id, workspaceId))
     .limit(1)
 
   const plan = rows[0]?.plan === 'pro' ? 'pro' : 'free'
-  const runsUsed = rows[0]?.runsUsed ?? 0
+  // Runs reset each calendar month; a stale period reads as zero used.
+  const runsUsed = isStalePeriod(rows[0]?.runsPeriodStart ?? null, new Date())
+    ? 0
+    : (rows[0]?.runsUsed ?? 0)
+  const limit = plan === 'pro' ? PRO_RUN_LIMIT : FREE_RUN_LIMIT
 
   return {
     plan,
     runsUsed,
-    limit: plan === 'pro' ? null : FREE_RUN_LIMIT,
-    canRun: plan === 'pro' || runsUsed < FREE_RUN_LIMIT,
+    limit,
+    canRun: runsUsed < limit,
     upgradeUrl: getUpgradeUrl(),
   }
 }
 
-// Increment the run counter when a workspace starts an agent run (review or
-// scan). Atomic so concurrent runs can't lose an increment.
+// Increment the run counter when a workspace starts an agent run (review,
+// scan, or fix PR). Atomic, and rolls the monthly window: if the stored period
+// is from a previous month, the count resets to 1 and the period moves to now.
 export async function incrementWorkspaceRuns(
   workspaceId: string,
 ): Promise<void> {
@@ -63,9 +82,14 @@ export async function incrementWorkspaceRuns(
     import('../db/schema'),
   ])
 
+  const isNewPeriod = sql`(${workspaces.runsPeriodStart} is null or date_trunc('month', ${workspaces.runsPeriodStart}) < date_trunc('month', now()))`
+
   await db
     .update(workspaces)
-    .set({ runsUsed: sql`${workspaces.runsUsed} + 1` })
+    .set({
+      runsUsed: sql`case when ${isNewPeriod} then 1 else ${workspaces.runsUsed} + 1 end`,
+      runsPeriodStart: sql`case when ${isNewPeriod} then now() else ${workspaces.runsPeriodStart} end`,
+    })
     .where(eq(workspaces.id, workspaceId))
 }
 
@@ -82,7 +106,8 @@ export const getBilling = createServerFn({ method: 'GET' }).handler(
   },
 )
 
-// Unlock unlimited runs after a successful subscription, storing the Bachs ids
+// Unlock the Pro monthly run quota after a successful subscription, storing the
+// Bachs ids
 // so later webhook events (e.g. cancellation) map back to this workspace.
 export async function markWorkspacePro(
   workspaceId: string,
@@ -173,7 +198,15 @@ async function ensureBachsCustomer(
     .limit(1)
 
   const existing = rows[0]?.customerId
-  if (existing) return existing
+  // Reuse the stored customer only if it still exists in Bachs. A stale id
+  // (e.g. after an API-key or sandbox change) would otherwise fail every
+  // checkout with "customer not found"; fall through and create a fresh one.
+  if (existing) {
+    const check = await bachsFetch(`/v1/customers/${existing}`, {
+      method: 'GET',
+    })
+    if (check.ok) return existing
+  }
 
   const res = await bachsFetch('/v1/customers', {
     method: 'POST',

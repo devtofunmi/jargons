@@ -225,6 +225,14 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
       return { url: null, reason: 'Invalid scan.' }
     }
 
+    // Freemium gate: opening a fix PR is an agent run, so a free workspace that
+    // has used its lifetime run must upgrade first.
+    const { getWorkspaceBilling } = await import('./billing')
+    const billing = await getWorkspaceBilling(currentUser.workspace.id)
+    if (!billing.canRun) {
+      return { url: null, reason: 'upgrade_required' }
+    }
+
     const [
       { and, eq },
       { db },

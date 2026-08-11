@@ -49,6 +49,10 @@ export async function generateFixes({
               temperature: 0,
               responseMimeType: 'application/json',
               responseSchema: RESPONSE_SCHEMA,
+              // Larger cap than review/scan since autofix returns whole files;
+              // still bounded, and thinking disabled to control cost.
+              maxOutputTokens: 16384,
+              thinkingConfig: { thinkingBudget: 0 },
             },
           }),
         },
@@ -91,7 +95,7 @@ function parseFixed(text: string, files: FileToFix[]): FixedFile[] {
   }
   const raw =
     parsed && typeof parsed === 'object' && 'files' in parsed
-      ? (parsed as { files: unknown }).files
+      ? parsed.files
       : []
   if (!Array.isArray(raw)) return []
 

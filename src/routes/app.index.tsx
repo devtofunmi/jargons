@@ -79,12 +79,12 @@ function Dashboard() {
             <p className="text-sm font-semibold text-zinc-100">
               {billing.canRun
                 ? 'Free plan'
-                : "You've used your free Jargons run"}
+                : "You've used your runs this month"}
             </p>
             <p className="mt-1 text-sm leading-6 text-zinc-500">
               {billing.canRun
-                ? `One free agent run — ${billing.runsUsed}/${billing.limit} used. Upgrade for unlimited reviews and scans.`
-                : 'Upgrade to Jargons Pro for unlimited pull request reviews and codebase scans.'}
+                ? `${billing.runsUsed}/${billing.limit} runs used this month. Upgrade to Pro for more each month.`
+                : 'Upgrade to Jargons Pro for more runs each month.'}
             </p>
           </div>
           <UpgradeButton />

@@ -80,6 +80,9 @@ export const workspaces = pgTable('workspaces', {
   // Lifetime count of agent runs (reviews + scans) started by this workspace,
   // incremented when a run is created. Drives the free-tier limit.
   runsUsed: integer('runs_used').notNull().default(0),
+  // Start of the current run-counting window. runsUsed resets to 0 when the
+  // calendar month rolls over past this, giving Pro a monthly quota.
+  runsPeriodStart: timestamp('runs_period_start', { withTimezone: true }),
   // Bachs billing identifiers, set when the workspace subscribes. The customer
   // id links webhook events back to this workspace.
   bachsCustomerId: text('bachs_customer_id'),

@@ -9,6 +9,7 @@ export type FeatureKey = 'risk' | 'context' | 'speed' | 'codebase'
 export const navigationItems = [
   { label: 'Features', href: '#features' },
   { label: 'Workflow', href: '#workflow' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Docs', href: '#docs' },
 ] as const
 

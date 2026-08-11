@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AppRouteImport } from './routes/app'
@@ -48,6 +49,11 @@ const TermsRoute = TermsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -196,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/docs': typeof DocsRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/app/health': typeof AppHealthRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/app/health': typeof AppHealthRoute
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/docs': typeof DocsRoute
   '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/app/health': typeof AppHealthRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/docs'
     | '/onboarding'
+    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/app/health'
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/'
     | '/docs'
     | '/onboarding'
+    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/app/health'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/docs'
     | '/onboarding'
+    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/app/health'
@@ -384,6 +396,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   DocsRoute: typeof DocsRoute
   OnboardingRoute: typeof OnboardingRoute
+  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   AuthConnectRoute: typeof AuthConnectRoute
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -682,6 +702,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   DocsRoute: DocsRoute,
   OnboardingRoute: OnboardingRoute,
+  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   AuthConnectRoute: AuthConnectRoute,

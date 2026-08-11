@@ -12,8 +12,7 @@ import {
 import { useEffect, useState } from 'react'
 
 import { ListPageSkeleton } from '../components/skeletons'
-import { SearchableSelect } from '../components/searchable-select'
-import { UpgradeButton } from '../components/upgrade-button'
+import { ScanModal } from '../components/scan-modal'
 import { padCount, timeAgo } from '../lib/format'
 import { getSyncedRepositories } from '../server/github-app'
 import { getCodebaseScans } from '../server/scans'
@@ -34,9 +33,7 @@ export const Route = createFileRoute('/app/scans/')({
 function ScansPage() {
   const { scans, repositories } = Route.useLoaderData()
   const router = useRouter()
-  const [selectedRepo, setSelectedRepo] = useState('')
-  const [starting, setStarting] = useState(false)
-  const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null)
+  const [scanModalOpen, setScanModalOpen] = useState(false)
 
   const hasActiveScan = scans.some(
     (scan) => scan.status === 'queued' || scan.status === 'running',
@@ -50,29 +47,6 @@ function ScansPage() {
     }, 5000)
     return () => clearInterval(id)
   }, [hasActiveScan, router])
-
-  async function startScan() {
-    const repositoryId = selectedRepo || repositories[0]?.id
-    if (!repositoryId) return
-    setStarting(true)
-    try {
-      const res = await fetch('/api/scans/start', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ repositoryId }),
-      })
-      if (res.status === 402) {
-        const data = (await res.json().catch(() => ({}))) as {
-          upgradeUrl?: string
-        }
-        setUpgradeUrl(data.upgradeUrl ?? 'https://bachs.io/')
-        return
-      }
-      await router.invalidate()
-    } finally {
-      setStarting(false)
-    }
-  }
 
   const countByStatus = (status: CodebaseScanItem['status']) =>
     scans.filter((scan) => scan.status === status).length
@@ -92,60 +66,24 @@ function ScansPage() {
             risks, and structural issues.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <SearchableSelect
-            options={repositories.map((repo) => ({
-              value: repo.id,
-              label: repo.fullName,
-            }))}
-            value={selectedRepo || repositories[0]?.id || ''}
-            onChange={setSelectedRepo}
-            placeholder="Select a repository"
-            searchPlaceholder="Search repositories..."
-            emptyLabel="No repositories connected"
-            disabled={repositories.length === 0 || starting || hasActiveScan}
-          />
-          <button
-            className="button-primary shrink-0 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={repositories.length === 0 || starting || hasActiveScan}
-            onClick={() => {
-              void startScan()
-            }}
-          >
-            {starting ? (
-              <>
-                Starting...
-                <LoaderCircle className="size-4 animate-spin" />
-              </>
-            ) : hasActiveScan ? (
-              <>
-                Scanning...
-                <LoaderCircle className="size-4 animate-spin" />
-              </>
-            ) : (
-              <>
-                <ScanSearch className="size-4" />
-                Start new scan
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          className="button-primary shrink-0 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={repositories.length === 0 || hasActiveScan}
+          onClick={() => setScanModalOpen(true)}
+        >
+          {hasActiveScan ? (
+            <>
+              Scanning...
+              <LoaderCircle className="size-4 animate-spin" />
+            </>
+          ) : (
+            <>
+              <ScanSearch className="size-4" />
+              Start new scan
+            </>
+          )}
+        </button>
       </div>
-
-      {upgradeUrl ? (
-        <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-amber-200">
-              You&rsquo;ve used your free Jargons run
-            </p>
-            <p className="mt-1 text-sm leading-6 text-zinc-400">
-              Upgrade to Jargons Pro to run unlimited codebase scans and pull
-              request reviews.
-            </p>
-          </div>
-          <UpgradeButton />
-        </div>
-      ) : null}
 
       <div className="mt-10 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <ScanMetric
@@ -226,6 +164,18 @@ function ScansPage() {
           )}
         </div>
       </article>
+
+      <ScanModal
+        open={scanModalOpen}
+        onClose={() => {
+          setScanModalOpen(false)
+          void router.invalidate()
+        }}
+        repos={repositories.map((repo) => ({
+          id: repo.id,
+          fullName: repo.fullName,
+        }))}
+      />
     </section>
   )
 }
