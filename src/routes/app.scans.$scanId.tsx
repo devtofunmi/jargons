@@ -221,12 +221,7 @@ function FixPrButton({ scanId, canRun }: { scanId: string; canRun: boolean }) {
 
   if (state === 'done' && url) {
     return (
-      <a
-        className="button-primary"
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-      >
+      <a className="button-primary" href={url} target="_blank" rel="noreferrer">
         View fix PR
         <ExternalLink className="size-4" />
       </a>

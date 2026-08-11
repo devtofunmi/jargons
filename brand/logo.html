@@ -15,9 +15,18 @@
         color: #e4e4e7;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       }
-      .preview { display: flex; gap: 24px; align-items: center; }
-      .preview img { width: 160px; height: 160px; }
-      .round { border-radius: 9999px; }
+      .preview {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      .preview img {
+        width: 160px;
+        height: 160px;
+      }
+      .round {
+        border-radius: 9999px;
+      }
       button {
         border: 1px solid #3f3f46;
         background: #ffe04b;
@@ -28,22 +37,38 @@
         border-radius: 12px;
         cursor: pointer;
       }
-      p { color: #a1a1aa; font-size: 13px; }
+      p {
+        color: #a1a1aa;
+        font-size: 13px;
+      }
     </style>
   </head>
   <body>
     <div class="preview">
       <img src="./jargons-logo.svg" alt="Jargons logo (square)" />
-      <img class="round" src="./jargons-logo.svg" alt="Jargons logo (circle crop preview)" />
+      <img
+        class="round"
+        src="./jargons-logo.svg"
+        alt="Jargons logo (circle crop preview)"
+      />
     </div>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center">
-      <button data-size="512" data-name="jargons-logo.png">GitHub App logo → jargons-logo.png (512)</button>
-      <button data-size="512" data-name="logo512.png">public/logo512.png</button>
-      <button data-size="192" data-name="logo192.png">public/logo192.png</button>
+    <div
+      style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center"
+    >
+      <button data-size="512" data-name="jargons-logo.png">
+        GitHub App logo → jargons-logo.png (512)
+      </button>
+      <button data-size="512" data-name="logo512.png">
+        public/logo512.png
+      </button>
+      <button data-size="192" data-name="logo192.png">
+        public/logo192.png
+      </button>
     </div>
     <p>
-      Upload <b>jargons-logo.png</b> to the GitHub App. Drop <b>logo512.png</b> and
-      <b>logo192.png</b> into <b>public/</b> (replacing the TanStack defaults).
+      Upload <b>jargons-logo.png</b> to the GitHub App. Drop
+      <b>logo512.png</b> and <b>logo192.png</b> into <b>public/</b> (replacing
+      the TanStack defaults).
     </p>
 
     <script>

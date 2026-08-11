@@ -48,9 +48,9 @@ function TermsPage() {
       <ContentSection heading="Your responsibilities">
         <p>
           You retain full ownership of your code. You are responsible for
-          reviewing any suggestion or fix pull request before merging it. Jargons
-          does not merge changes on your behalf, and you should treat its output
-          as input to your own judgment, not a replacement for it.
+          reviewing any suggestion or fix pull request before merging it.
+          Jargons does not merge changes on your behalf, and you should treat
+          its output as input to your own judgment, not a replacement for it.
         </p>
       </ContentSection>
 
@@ -73,18 +73,18 @@ function TermsPage() {
 
       <ContentSection heading="Limitation of liability">
         <p>
-          To the fullest extent permitted by law, Jargons and its maintainers are
-          not liable for any indirect, incidental, or consequential damages
-          arising from your use of the service, including issues merged into your
-          codebase.
+          To the fullest extent permitted by law, Jargons and its maintainers
+          are not liable for any indirect, incidental, or consequential damages
+          arising from your use of the service, including issues merged into
+          your codebase.
         </p>
       </ContentSection>
 
       <ContentSection heading="Changes and termination">
         <p>
           We may update these terms or the service over time. You can stop using
-          Jargons at any time by uninstalling the GitHub App. Continued use after
-          a change means you accept the updated terms.
+          Jargons at any time by uninstalling the GitHub App. Continued use
+          after a change means you accept the updated terms.
         </p>
       </ContentSection>
     </ContentShell>

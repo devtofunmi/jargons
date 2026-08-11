@@ -62,7 +62,10 @@ export function ContentShell({
         <div className="mx-auto flex max-w-4xl flex-col gap-3 text-[11px] text-zinc-700 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 Jargons, Inc.</p>
           <div className="flex items-center gap-5">
-            <a href="/privacy" className="transition-colors hover:text-zinc-300">
+            <a
+              href="/privacy"
+              className="transition-colors hover:text-zinc-300"
+            >
               Privacy
             </a>
             <a href="/terms" className="transition-colors hover:text-zinc-300">

@@ -103,9 +103,7 @@ export const workspaceSettings = pgTable('workspace_settings', {
     .references(() => workspaces.id, { onDelete: 'cascade' }),
   reviewPullRequests: boolean('review_pull_requests').notNull().default(true),
   reviewSecurity: boolean('review_security').notNull().default(true),
-  reviewCodebaseScans: boolean('review_codebase_scans')
-    .notNull()
-    .default(true),
+  reviewCodebaseScans: boolean('review_codebase_scans').notNull().default(true),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),

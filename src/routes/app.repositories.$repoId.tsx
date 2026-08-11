@@ -20,7 +20,10 @@ import { useState } from 'react'
 
 import { DetailPageSkeleton } from '../components/skeletons'
 import { ScanModal } from '../components/scan-modal'
-import { getSyncedRepository, setRepositoryWatching } from '../server/github-app'
+import {
+  getSyncedRepository,
+  setRepositoryWatching,
+} from '../server/github-app'
 import { getRepositoryReviewRuns } from '../server/reviews'
 import { getWorkspaceSettings } from '../server/workspace'
 

@@ -111,7 +111,10 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(
       db
         .select({ value: count() })
         .from(codebaseScans)
-        .innerJoin(repositories, eq(codebaseScans.repositoryId, repositories.id))
+        .innerJoin(
+          repositories,
+          eq(codebaseScans.repositoryId, repositories.id),
+        )
         .where(eq(repositories.workspaceId, workspaceId)),
       getReviewRuns(),
       db

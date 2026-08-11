@@ -124,7 +124,9 @@ export async function markWorkspacePro(
     .set({
       plan: 'pro',
       ...(ids?.customerId ? { bachsCustomerId: ids.customerId } : {}),
-      ...(ids?.subscriptionId ? { bachsSubscriptionId: ids.subscriptionId } : {}),
+      ...(ids?.subscriptionId
+        ? { bachsSubscriptionId: ids.subscriptionId }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(workspaces.id, workspaceId))
@@ -266,7 +268,10 @@ export async function createProCheckout(
       method: 'POST',
       body: payload,
     })
-    const data = (await res.json()) as { checkout_url?: string; detail?: string }
+    const data = (await res.json()) as {
+      checkout_url?: string
+      detail?: string
+    }
     if (res.ok && data.checkout_url) {
       return data.checkout_url
     }

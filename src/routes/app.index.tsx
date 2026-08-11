@@ -96,7 +96,10 @@ function Dashboard() {
           label="repositories watched"
           value={padCount(metrics.repositories)}
         />
-        <MetricCard label="open reviews" value={padCount(metrics.openReviews)} />
+        <MetricCard
+          label="open reviews"
+          value={padCount(metrics.openReviews)}
+        />
         <MetricCard
           label="findings this week"
           value={padCount(metrics.findingsThisWeek)}

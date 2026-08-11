@@ -68,12 +68,8 @@
           "name": "codebase_scans_repository_id_repositories_id_fk",
           "tableFrom": "codebase_scans",
           "tableTo": "repositories",
-          "columnsFrom": [
-            "repository_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["repository_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -164,12 +160,8 @@
           "name": "findings_review_run_id_review_runs_id_fk",
           "tableFrom": "findings",
           "tableTo": "review_runs",
-          "columnsFrom": [
-            "review_run_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["review_run_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -260,12 +252,8 @@
           "name": "github_installations_workspace_id_workspaces_id_fk",
           "tableFrom": "github_installations",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -363,12 +351,8 @@
           "name": "pull_requests_repository_id_repositories_id_fk",
           "tableFrom": "pull_requests",
           "tableTo": "repositories",
-          "columnsFrom": [
-            "repository_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["repository_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -472,12 +456,8 @@
           "name": "repositories_workspace_id_workspaces_id_fk",
           "tableFrom": "repositories",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -546,12 +526,8 @@
           "name": "review_runs_pull_request_id_pull_requests_id_fk",
           "tableFrom": "review_runs",
           "tableTo": "pull_requests",
-          "columnsFrom": [
-            "pull_request_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pull_request_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -605,12 +581,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -620,9 +592,7 @@
         "sessions_token_hash_unique": {
           "name": "sessions_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -765,12 +735,8 @@
           "name": "workspaces_owner_id_users_id_fk",
           "tableFrom": "workspaces",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -780,9 +746,7 @@
         "workspaces_slug_unique": {
           "name": "workspaces_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -794,51 +758,27 @@
     "public.finding_severity": {
       "name": "finding_severity",
       "schema": "public",
-      "values": [
-        "critical",
-        "high",
-        "medium",
-        "low",
-        "note"
-      ]
+      "values": ["critical", "high", "medium", "low", "note"]
     },
     "public.installation_status": {
       "name": "installation_status",
       "schema": "public",
-      "values": [
-        "active",
-        "suspended",
-        "deleted"
-      ]
+      "values": ["active", "suspended", "deleted"]
     },
     "public.repository_status": {
       "name": "repository_status",
       "schema": "public",
-      "values": [
-        "watching",
-        "needs_setup",
-        "paused"
-      ]
+      "values": ["watching", "needs_setup", "paused"]
     },
     "public.review_run_status": {
       "name": "review_run_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "complete",
-        "failed"
-      ]
+      "values": ["queued", "running", "complete", "failed"]
     },
     "public.scan_status": {
       "name": "scan_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "complete",
-        "failed"
-      ]
+      "values": ["queued", "running", "complete", "failed"]
     }
   },
   "schemas": {},

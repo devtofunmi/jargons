@@ -59,18 +59,19 @@ function DocsPage() {
 
       <ContentSection heading="Codebase scans">
         <p>
-          Beyond pull requests, Jargons can scan an entire repository for bugs and
-          structural risks. From a completed scan you can click{' '}
-          <span className="text-zinc-200">Open fix PR with Jargons</span> to turn
-          the scan's suggestions into a pull request against your default branch.
+          Beyond pull requests, Jargons can scan an entire repository for bugs
+          and structural risks. From a completed scan you can click{' '}
+          <span className="text-zinc-200">Open fix PR with Jargons</span> to
+          turn the scan's suggestions into a pull request against your default
+          branch.
         </p>
       </ContentSection>
 
       <ContentSection heading="Configuration">
         <p>
           In workspace settings you control what Jargons does: pull request
-          reviews, security findings, and codebase scans can each be toggled on or
-          off. Changes apply to every repository in the workspace.
+          reviews, security findings, and codebase scans can each be toggled on
+          or off. Changes apply to every repository in the workspace.
         </p>
       </ContentSection>
 

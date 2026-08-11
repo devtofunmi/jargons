@@ -30,7 +30,8 @@ export const Route = createFileRoute('/onboarding')({
 
     return {
       installed: Boolean(settings.installation),
-      accountLogin: settings.installation?.accountLogin ?? settings.workspace.slug,
+      accountLogin:
+        settings.installation?.accountLogin ?? settings.workspace.slug,
       repos: repos.map((repo) => ({ id: repo.id, fullName: repo.fullName })),
     }
   },

@@ -154,9 +154,8 @@ export async function handlePullRequestEvent(
 
   // Freemium gate: a free workspace gets one lifetime agent run. Once used,
   // skip the review and (on open/reopen) nudge them to upgrade.
-  const { getWorkspaceBilling, incrementWorkspaceRuns } = await import(
-    './billing'
-  )
+  const { getWorkspaceBilling, incrementWorkspaceRuns } =
+    await import('./billing')
   const billing = await getWorkspaceBilling(workspaceId)
   if (!billing.canRun) {
     if (payload.action === 'opened' || payload.action === 'reopened') {
@@ -232,7 +231,10 @@ export async function handlePullRequestEvent(
 
   // A run for this exact commit already exists (duplicate/concurrent delivery).
   if (!reviewRun[0]) {
-    return { handled: false, reason: 'duplicate delivery: commit already reviewed' }
+    return {
+      handled: false,
+      reason: 'duplicate delivery: commit already reviewed',
+    }
   }
 
   const reviewRunId = reviewRun[0].id
