@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { loadDb } from '../db/load'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
 export const Route = createFileRoute('/api/scans/start')({
@@ -34,15 +35,14 @@ export const Route = createFileRoute('/api/scans/start')({
           return json({ error: 'repositoryId is required' }, 400)
         }
 
-        const [
-          { and, eq },
-          { db },
-          { codebaseScans, githubInstallations, repositories },
-        ] = await Promise.all([
-          import('drizzle-orm'),
-          import('../db/client'),
-          import('../db/schema'),
-        ])
+        const {
+          and,
+          eq,
+          db,
+          codebaseScans,
+          githubInstallations,
+          repositories,
+        } = await loadDb()
 
         const repositoryRows = await db
           .select({

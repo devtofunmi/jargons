@@ -1,6 +1,7 @@
 // GitHub App webhook: HMAC signature is the trust boundary (verified before
 // the body is read as data), then pull-request events kick off a review run.
 
+import { loadDb } from '../db/load'
 import { runInBackground } from './background'
 import { getEnv } from './env'
 import { runReview } from './review-engine/run-review'
@@ -80,11 +81,7 @@ export async function handlePullRequestEvent(
     return { handled: false, reason: 'skipping Jargons-authored fix PR' }
   }
 
-  const [{ and, eq }, { db }, schema] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { and, eq, db, schema } = await loadDb()
 
   const installationRows = await db
     .select({

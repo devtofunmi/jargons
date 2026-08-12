@@ -5,6 +5,7 @@
 
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import {
   FREE_RUN_LIMIT,
   isStalePeriod,
@@ -33,11 +34,7 @@ export function getUpgradeUrl(): string {
 export async function getWorkspaceBilling(
   workspaceId: string,
 ): Promise<WorkspaceBilling> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   const rows = await db
     .select({
@@ -71,11 +68,7 @@ export async function getWorkspaceBilling(
 export async function incrementWorkspaceRuns(
   workspaceId: string,
 ): Promise<void> {
-  const [{ eq, sql }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, sql, db, workspaces } = await loadDb()
 
   const isNewPeriod = sql`(${workspaces.runsPeriodStart} is null or date_trunc('month', ${workspaces.runsPeriodStart}) < date_trunc('month', now()))`
 
@@ -108,11 +101,7 @@ export async function markWorkspacePro(
   workspaceId: string,
   ids?: { customerId?: string; subscriptionId?: string },
 ): Promise<void> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   await db
     .update(workspaces)
@@ -129,11 +118,7 @@ export async function markWorkspacePro(
 
 // Downgrade a workspace back to free (e.g. its subscription was canceled).
 export async function downgradeWorkspace(workspaceId: string): Promise<void> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   await db
     .update(workspaces)
@@ -145,11 +130,7 @@ export async function downgradeWorkspace(workspaceId: string): Promise<void> {
 export async function workspaceByBachsCustomer(
   customerId: string,
 ): Promise<string | null> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   const rows = await db
     .select({ id: workspaces.id })
@@ -182,11 +163,7 @@ async function ensureBachsCustomer(
   email: string | null,
   name: string | null,
 ): Promise<string> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   const rows = await db
     .select({ customerId: workspaces.bachsCustomerId })

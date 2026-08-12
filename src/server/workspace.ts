@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 
 export type WorkspaceSettingsData = {
@@ -33,15 +34,14 @@ export const getWorkspaceSettings = createServerFn({ method: 'GET' }).handler(
       return null
     }
 
-    const [
-      { count, eq },
-      { db },
-      { githubInstallations, repositories, workspaceSettings },
-    ] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const {
+      count,
+      eq,
+      db,
+      githubInstallations,
+      repositories,
+      workspaceSettings,
+    } = await loadDb()
 
     const workspaceId = currentUser.workspace.id
     const [installationRows, repositoryCountRows, settingsRows] =
@@ -106,10 +106,7 @@ export const updateReviewPreferences = createServerFn({ method: 'POST' })
       throw new Error('Sign in before updating workspace settings.')
     }
 
-    const [{ db }, { workspaceSettings }] = await Promise.all([
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const { db, workspaceSettings } = await loadDb()
 
     await db
       .insert(workspaceSettings)

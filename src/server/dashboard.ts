@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 import type { ReviewRunListItem } from './reviews'
 
@@ -46,17 +47,22 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(
       return emptyDashboard
     }
 
-    const [
-      { and, count, countDistinct, desc, eq, gt, inArray },
-      { db },
-      { codebaseScans, findings, pullRequests, repositories, reviewRuns },
-      { getReviewRuns },
-    ] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-      import('./reviews'),
-    ])
+    const {
+      and,
+      count,
+      countDistinct,
+      desc,
+      eq,
+      gt,
+      inArray,
+      db,
+      codebaseScans,
+      findings,
+      pullRequests,
+      repositories,
+      reviewRuns,
+    } = await loadDb()
+    const { getReviewRuns } = await import('./reviews')
 
     const workspaceId = currentUser.workspace.id
     const weekAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7)
