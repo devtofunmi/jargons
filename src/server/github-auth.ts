@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { getEnv, getOptionalEnv } from './env'
 
 type GitHubTokenResponse = {
@@ -81,10 +82,7 @@ export const completeGitHubAuthForCallback = createServerFn({ method: 'POST' })
   })
 
 export async function completeGitHubAuthWithCode(code: string) {
-  const [{ db }, { sessions, users, workspaces }] = await Promise.all([
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { db, sessions, users, workspaces } = await loadDb()
   const accessToken = await exchangeGitHubCode(code)
   const githubUser = await getGitHubUser(accessToken)
   const now = new Date()
@@ -168,11 +166,7 @@ export const signOut = createServerFn({ method: 'POST' }).handler(async () => {
   const sessionToken = await getSessionCookie()
 
   if (sessionToken) {
-    const [{ eq }, { db }, { sessions }] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const { eq, db, sessions } = await loadDb()
     const tokenHash = await hashSessionToken(sessionToken)
 
     await db.delete(sessions).where(eq(sessions.tokenHash, tokenHash))
@@ -231,12 +225,7 @@ export async function getCurrentUserFromToken(
     return null
   }
 
-  const [{ and, eq, gt }, { db }, { sessions, users, workspaces }] =
-    await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+  const { and, eq, gt, db, sessions, users, workspaces } = await loadDb()
 
   const tokenHash = await hashSessionToken(sessionToken)
   const currentUserRows = await db

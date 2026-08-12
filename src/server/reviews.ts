@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb as loadDatabase } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 
 export type ReviewRunListItem = {
@@ -30,13 +31,9 @@ export type ReviewRunDetail = ReviewRunListItem & {
 }
 
 async function loadDb() {
-  const [drizzle, { db }, schema] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const loaded = await loadDatabase()
 
-  return { drizzle, db, schema }
+  return { drizzle: loaded, db: loaded.db, schema: loaded.schema }
 }
 
 async function queryReviewRuns(

@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { getEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
 
@@ -72,11 +73,7 @@ export const getGitHubAppStatus = createServerFn({ method: 'GET' }).handler(
       return { signedIn: Boolean(currentUser), installed: false }
     }
 
-    const [{ eq }, { db }, { githubInstallations }] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const { eq, db, githubInstallations } = await loadDb()
 
     const rows = await db
       .select({ id: githubInstallations.id })
@@ -104,10 +101,7 @@ export const completeGitHubAppInstallation = createServerFn({ method: 'POST' })
       data.installationId ??
       (await findInstallationId(currentUser.workspace.id, currentUser.username))
     const installation = await getInstallation(installationId)
-    const [{ db }, { githubInstallations }] = await Promise.all([
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const { db, githubInstallations } = await loadDb()
     const accountLogin = installation.account?.login ?? currentUser.username
     const accountType = installation.account?.type ?? 'User'
     const now = new Date()
@@ -158,11 +152,7 @@ export const setRepositoryWatching = createServerFn({ method: 'POST' })
       throw new Error('Sign in to change repository settings.')
     }
 
-    const [{ and, eq }, { db }, { repositories }] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const { and, eq, db, repositories } = await loadDb()
 
     await db
       .update(repositories)
@@ -182,12 +172,7 @@ export const setRepositoryWatching = createServerFn({ method: 'POST' })
 
 export const getSyncedRepositories = createServerFn({ method: 'GET' }).handler(
   async (): Promise<SyncedRepository[]> => {
-    const [{ eq }, { db }, { repositories: repositoryTable }] =
-      await Promise.all([
-        import('drizzle-orm'),
-        import('../db/client'),
-        import('../db/schema'),
-      ])
+    const { eq, db, repositories: repositoryTable } = await loadDb()
     const currentUser = await getCurrentUserFromCookie()
 
     if (!currentUser?.workspace) {
@@ -218,12 +203,7 @@ export const getSyncedRepositories = createServerFn({ method: 'GET' }).handler(
 export const getSyncedRepository = createServerFn({ method: 'GET' })
   .validator((input: { repoId: string }) => input)
   .handler(async ({ data }): Promise<SyncedRepository | null> => {
-    const [{ and, eq }, { db }, { repositories: repositoryTable }] =
-      await Promise.all([
-        import('drizzle-orm'),
-        import('../db/client'),
-        import('../db/schema'),
-      ])
+    const { and, eq, db, repositories: repositoryTable } = await loadDb()
     const currentUser = await getCurrentUserFromCookie()
 
     if (!currentUser?.workspace) {
@@ -268,12 +248,13 @@ async function syncInstallationRepositories({
   installationId: string
   workspaceId: string
 }) {
-  const [{ and, eq, notInArray }, { db }, { repositories: repositoryTable }] =
-    await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+  const {
+    and,
+    eq,
+    notInArray,
+    db,
+    repositories: repositoryTable,
+  } = await loadDb()
   const accessToken = await createInstallationAccessToken(installationId)
   const allRepositories: GitHubRepository[] = []
 
@@ -350,11 +331,7 @@ async function syncInstallationRepositories({
 }
 
 async function findInstallationId(workspaceId: string, username: string) {
-  const [{ eq }, { db }, { githubInstallations }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, githubInstallations } = await loadDb()
 
   const existing = await db
     .select({ installationId: githubInstallations.installationId })

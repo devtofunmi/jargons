@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { loadDb } from '../db/load'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
 export const Route = createFileRoute('/api/scans/start')({
@@ -34,15 +35,14 @@ export const Route = createFileRoute('/api/scans/start')({
           return json({ error: 'repositoryId is required' }, 400)
         }
 
-        const [
-          { and, eq },
-          { db },
-          { codebaseScans, githubInstallations, repositories },
-        ] = await Promise.all([
-          import('drizzle-orm'),
-          import('../db/client'),
-          import('../db/schema'),
-        ])
+        const {
+          and,
+          eq,
+          db,
+          codebaseScans,
+          githubInstallations,
+          repositories,
+        } = await loadDb()
 
         const repositoryRows = await db
           .select({
@@ -93,16 +93,22 @@ export const Route = createFileRoute('/api/scans/start')({
 
         await incrementWorkspaceRuns(currentUser.workspace.id)
 
-        // Fire-and-forget: the engine owns its own tracing and never throws.
-        const { runScan } = await import('../server/scan-engine/run-scan')
-        void runScan({
-          scanId,
-          installationId,
-          workspace: currentUser.workspace.slug,
-          owner: repository.owner,
-          repo: repository.name,
-          branch: repository.defaultBranch,
-        })
+        // Background: kept alive after the response via waitUntil so serverless
+        // doesn't tear the run down. The engine owns its tracing and never throws.
+        const [{ runScan }, { runInBackground }] = await Promise.all([
+          import('../server/scan-engine/run-scan'),
+          import('../server/background'),
+        ])
+        runInBackground(
+          runScan({
+            scanId,
+            installationId,
+            workspace: currentUser.workspace.slug,
+            owner: repository.owner,
+            repo: repository.name,
+            branch: repository.defaultBranch,
+          }),
+        )
 
         return json({ scanId }, 202)
       },

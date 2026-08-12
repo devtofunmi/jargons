@@ -5,7 +5,13 @@
 
 import { createServerFn } from '@tanstack/react-start'
 
-import { FREE_RUN_LIMIT, PRO_PRICE_USD, PRO_RUN_LIMIT } from '../lib/plans'
+import { loadDb } from '../db/load'
+import {
+  FREE_RUN_LIMIT,
+  isStalePeriod,
+  PRO_PRICE_USD,
+  PRO_RUN_LIMIT,
+} from '../lib/plans'
 import { getOptionalEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
 
@@ -25,24 +31,10 @@ export function getUpgradeUrl(): string {
   return `${getOptionalEnv('APP_URL', 'http://localhost:3000')}/pricing`
 }
 
-// True when `periodStart` is in an earlier calendar month than now (UTC), i.e.
-// the monthly run quota should reset.
-function isStalePeriod(periodStart: Date | null, now: Date): boolean {
-  if (!periodStart) return true
-  return (
-    periodStart.getUTCFullYear() !== now.getUTCFullYear() ||
-    periodStart.getUTCMonth() !== now.getUTCMonth()
-  )
-}
-
 export async function getWorkspaceBilling(
   workspaceId: string,
 ): Promise<WorkspaceBilling> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   const rows = await db
     .select({
@@ -76,11 +68,7 @@ export async function getWorkspaceBilling(
 export async function incrementWorkspaceRuns(
   workspaceId: string,
 ): Promise<void> {
-  const [{ eq, sql }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, sql, db, workspaces } = await loadDb()
 
   const isNewPeriod = sql`(${workspaces.runsPeriodStart} is null or date_trunc('month', ${workspaces.runsPeriodStart}) < date_trunc('month', now()))`
 
@@ -113,11 +101,7 @@ export async function markWorkspacePro(
   workspaceId: string,
   ids?: { customerId?: string; subscriptionId?: string },
 ): Promise<void> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   await db
     .update(workspaces)
@@ -134,11 +118,7 @@ export async function markWorkspacePro(
 
 // Downgrade a workspace back to free (e.g. its subscription was canceled).
 export async function downgradeWorkspace(workspaceId: string): Promise<void> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   await db
     .update(workspaces)
@@ -150,11 +130,7 @@ export async function downgradeWorkspace(workspaceId: string): Promise<void> {
 export async function workspaceByBachsCustomer(
   customerId: string,
 ): Promise<string | null> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   const rows = await db
     .select({ id: workspaces.id })
@@ -187,11 +163,7 @@ async function ensureBachsCustomer(
   email: string | null,
   name: string | null,
 ): Promise<string> {
-  const [{ eq }, { db }, { workspaces }] = await Promise.all([
-    import('drizzle-orm'),
-    import('../db/client'),
-    import('../db/schema'),
-  ])
+  const { eq, db, workspaces } = await loadDb()
 
   const rows = await db
     .select({ customerId: workspaces.bachsCustomerId })

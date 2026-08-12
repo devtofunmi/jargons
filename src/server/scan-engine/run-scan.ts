@@ -3,6 +3,7 @@
 
 import { SpanStatusCode, context, trace } from '@opentelemetry/api'
 
+import { loadDb } from '../../db/load'
 import {
   llmCostUsdTotal,
   llmTokensTotal,
@@ -193,15 +194,6 @@ function countBySeverity(
     counts[finding.severity] += 1
   }
   return counts
-}
-
-async function loadDb() {
-  const [{ eq }, { db }, schema] = await Promise.all([
-    import('drizzle-orm'),
-    import('../../db/client'),
-    import('../../db/schema'),
-  ])
-  return { eq, db, schema }
 }
 
 async function markRunning(scanId: string) {

@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 
 // Mark the guided onboarding as dismissed for the signed-in user, whether they
@@ -13,11 +14,7 @@ export const markOnboarded = createServerFn({ method: 'POST' }).handler(
       throw new Error('Sign in before completing onboarding.')
     }
 
-    const [{ eq }, { db }, { users }] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-    ])
+    const { eq, db, users } = await loadDb()
 
     await db
       .update(users)

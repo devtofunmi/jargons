@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 
 export type ScanFindingCounts = {
@@ -54,12 +55,7 @@ export const getCodebaseScans = createServerFn({ method: 'GET' }).handler(
       return []
     }
 
-    const [{ desc, eq }, { db }, { codebaseScans, repositories }] =
-      await Promise.all([
-        import('drizzle-orm'),
-        import('../db/client'),
-        import('../db/schema'),
-      ])
+    const { desc, eq, db, codebaseScans, repositories } = await loadDb()
 
     const scans = await db
       .select({
@@ -160,12 +156,7 @@ export const getCodebaseScan = createServerFn({ method: 'GET' })
       return null
     }
 
-    const [{ and, eq }, { db }, { codebaseScans, repositories }] =
-      await Promise.all([
-        import('drizzle-orm'),
-        import('../db/client'),
-        import('../db/schema'),
-      ])
+    const { and, eq, db, codebaseScans, repositories } = await loadDb()
 
     const rows = await db
       .select({
@@ -233,10 +224,9 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
       return { url: null, reason: 'upgrade_required' }
     }
 
+    const { and, eq, db, codebaseScans, githubInstallations, repositories } =
+      await loadDb()
     const [
-      { and, eq },
-      { db },
-      { codebaseScans, githubInstallations, repositories },
       { generateFixes },
       {
         commitFileToBranch,
@@ -248,9 +238,6 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
       { tracer },
       { SpanStatusCode },
     ] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
       import('./review-engine/autofix'),
       import('./review-engine/github'),
       import('./observability'),

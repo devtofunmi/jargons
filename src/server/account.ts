@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { loadDb } from '../db/load'
 import { deleteSessionCookie, getCurrentUserFromCookie } from './github-auth'
 
 // Permanently delete the signed-in user's account and everything attached to
@@ -14,12 +15,8 @@ export const deleteAccount = createServerFn({ method: 'POST' }).handler(
       throw new Error('Sign in before deleting your account.')
     }
 
-    const [{ eq }, { db }, schema, { uninstallGitHubApp }] = await Promise.all([
-      import('drizzle-orm'),
-      import('../db/client'),
-      import('../db/schema'),
-      import('./github-app'),
-    ])
+    const { eq, db, schema } = await loadDb()
+    const { uninstallGitHubApp } = await import('./github-app')
 
     // Best-effort: uninstall the GitHub App from the user's account so no
     // installation is left orphaned once the workspace is gone. Never blocks

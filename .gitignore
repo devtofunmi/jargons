@@ -29,6 +29,7 @@ signoz/
 OBSERVABILITY.md
 casting.yaml
 casting.yaml.lock
+src/routes/app.health.tsx
 
 # Local webhook/review pipeline test harness (hardcoded IDs, hits localhost)
 _rt.mjs
