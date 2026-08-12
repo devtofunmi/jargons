@@ -1,6 +1,7 @@
 // GitHub App webhook: HMAC signature is the trust boundary (verified before
 // the body is read as data), then pull-request events kick off a review run.
 
+import { runInBackground } from './background'
 import { getEnv } from './env'
 import { runReview } from './review-engine/run-review'
 
@@ -242,19 +243,22 @@ export async function handlePullRequestEvent(
   // Count this run against the workspace's plan (only for a newly created run).
   await incrementWorkspaceRuns(workspaceId)
 
-  // Fire-and-forget: the engine owns its own tracing and never throws.
-  void runReview({
-    reviewRunId,
-    installationId: String(payload.installation.id),
-    workspace: workspaceSlug,
-    owner: payload.repository.owner.login,
-    repo: payload.repository.name,
-    prNumber: pr.number,
-    prTitle: pr.title,
-    headSha: pr.head.sha,
-    headRef: pr.head.ref,
-    reviewSecurity: settings.reviewSecurity,
-  })
+  // Background: kept alive after the response via waitUntil so serverless
+  // doesn't tear the run down. The engine owns its tracing and never throws.
+  runInBackground(
+    runReview({
+      reviewRunId,
+      installationId: String(payload.installation.id),
+      workspace: workspaceSlug,
+      owner: payload.repository.owner.login,
+      repo: payload.repository.name,
+      prNumber: pr.number,
+      prTitle: pr.title,
+      headSha: pr.head.sha,
+      headRef: pr.head.ref,
+      reviewSecurity: settings.reviewSecurity,
+    }),
+  )
 
   return { handled: true, reviewRunId }
 }
