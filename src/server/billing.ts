@@ -5,7 +5,12 @@
 
 import { createServerFn } from '@tanstack/react-start'
 
-import { FREE_RUN_LIMIT, PRO_PRICE_USD, PRO_RUN_LIMIT } from '../lib/plans'
+import {
+  FREE_RUN_LIMIT,
+  isStalePeriod,
+  PRO_PRICE_USD,
+  PRO_RUN_LIMIT,
+} from '../lib/plans'
 import { getOptionalEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
 
@@ -23,16 +28,6 @@ export type WorkspaceBilling = {
 // plans and starts a workspace-linked Bachs checkout.
 export function getUpgradeUrl(): string {
   return `${getOptionalEnv('APP_URL', 'http://localhost:3000')}/pricing`
-}
-
-// True when `periodStart` is in an earlier calendar month than now (UTC), i.e.
-// the monthly run quota should reset.
-function isStalePeriod(periodStart: Date | null, now: Date): boolean {
-  if (!periodStart) return true
-  return (
-    periodStart.getUTCFullYear() !== now.getUTCFullYear() ||
-    periodStart.getUTCMonth() !== now.getUTCMonth()
-  )
 }
 
 export async function getWorkspaceBilling(
