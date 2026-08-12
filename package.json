@@ -1,7 +1,7 @@
 {
   "name": "jargons",
   "description": "AI agent that reviews GitHub pull requests and scans codebases, then opens fix PRs.",
-  "license": "MIT",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "private": true,
   "type": "module",
   "imports": {
