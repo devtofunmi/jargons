@@ -35,10 +35,11 @@ GitHub App + Gemini key wired up.
 
 ## Before you open a PR
 
-Run the linter — this is what CI checks:
+Run the same checks CI runs:
 
 ```bash
 npm run lint       # ESLint
+npm run check      # Prettier formatting
 ```
 
 `npm run format` auto-formats your changes with Prettier and applies ESLint
