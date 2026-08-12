@@ -26,7 +26,6 @@ import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppScansRouteImport } from './routes/app.scans'
 import { Route as AppReviewsRouteImport } from './routes/app.reviews'
 import { Route as AppRepositoriesRouteImport } from './routes/app.repositories'
-import { Route as AppHealthRouteImport } from './routes/app.health'
 import { Route as AppScansIndexRouteImport } from './routes/app.scans.index'
 import { Route as AppReviewsIndexRouteImport } from './routes/app.reviews.index'
 import { Route as AppRepositoriesIndexRouteImport } from './routes/app.repositories.index'
@@ -126,11 +125,6 @@ const AppRepositoriesRoute = AppRepositoriesRouteImport.update({
   path: '/repositories',
   getParentRoute: () => AppRoute,
 } as any)
-const AppHealthRoute = AppHealthRouteImport.update({
-  id: '/health',
-  path: '/health',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppScansIndexRoute = AppScansIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -205,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/app/health': typeof AppHealthRoute
   '/app/repositories': typeof AppRepositoriesRouteWithChildren
   '/app/reviews': typeof AppReviewsRouteWithChildren
   '/app/scans': typeof AppScansRouteWithChildren
@@ -237,7 +230,6 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/app/health': typeof AppHealthRoute
   '/app/settings': typeof AppSettingsRoute
   '/auth/connect': typeof AuthConnectRoute
   '/auth/setup': typeof AuthSetupRoute
@@ -268,7 +260,6 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
-  '/app/health': typeof AppHealthRoute
   '/app/repositories': typeof AppRepositoriesRouteWithChildren
   '/app/reviews': typeof AppReviewsRouteWithChildren
   '/app/scans': typeof AppScansRouteWithChildren
@@ -303,7 +294,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/terms'
-    | '/app/health'
     | '/app/repositories'
     | '/app/reviews'
     | '/app/scans'
@@ -335,7 +325,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/terms'
-    | '/app/health'
     | '/app/settings'
     | '/auth/connect'
     | '/auth/setup'
@@ -365,7 +354,6 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/privacy'
     | '/terms'
-    | '/app/health'
     | '/app/repositories'
     | '/app/reviews'
     | '/app/scans'
@@ -534,13 +522,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRepositoriesRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/health': {
-      id: '/app/health'
-      path: '/health'
-      fullPath: '/app/health'
-      preLoaderRoute: typeof AppHealthRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/scans/': {
       id: '/app/scans/'
       path: '/'
@@ -678,7 +659,6 @@ const AppScansRouteWithChildren = AppScansRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
-  AppHealthRoute: typeof AppHealthRoute
   AppRepositoriesRoute: typeof AppRepositoriesRouteWithChildren
   AppReviewsRoute: typeof AppReviewsRouteWithChildren
   AppScansRoute: typeof AppScansRouteWithChildren
@@ -687,7 +667,6 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppHealthRoute: AppHealthRoute,
   AppRepositoriesRoute: AppRepositoriesRouteWithChildren,
   AppReviewsRoute: AppReviewsRouteWithChildren,
   AppScansRoute: AppScansRouteWithChildren,
