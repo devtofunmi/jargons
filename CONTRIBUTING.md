@@ -16,8 +16,8 @@ on the approach before you invest the time.
 
 ## Local setup
 
-Requirements: Node 20+, a Postgres database, and (for the review/scan agents) a
-GitHub App plus a Gemini API key.
+Requirements: Node 24 (see `.nvmrc`), a Postgres database, and (for the
+review/scan agents) a GitHub App plus a Gemini API key.
 
 ```bash
 git clone https://github.com/devtofunmi/jargons.git
@@ -40,6 +40,7 @@ Run the same checks CI runs:
 ```bash
 npm run lint       # ESLint
 npm run check      # Prettier formatting
+npm run test       # Vitest unit tests
 ```
 
 `npm run format` auto-formats your changes with Prettier and applies ESLint
@@ -53,7 +54,7 @@ fixes — run it before committing so your diff stays clean.
   (`feat(scans): …`, `fix(review): …`, `docs: …`).
 - **Describe the change** — what and why, plus screenshots for UI changes.
 - **Update docs** when you change behavior or configuration.
-- Make sure `npm run lint` and `npm run check` pass.
+- Make sure `npm run lint`, `npm run check`, and `npm run test` pass.
 
 ## Contributor License
 
