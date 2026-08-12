@@ -76,7 +76,6 @@ function PricingPage() {
         </p>
 
         <div className="mx-auto mt-14 grid max-w-3xl gap-5 text-left sm:grid-cols-2">
-          {/* Free */}
           <article className="flex flex-col rounded-[24px] border border-white/[0.08] bg-[#0c0c0f] p-6">
             <h2 className="text-lg font-medium tracking-[-0.03em]">Free</h2>
             <div className="mt-4 flex items-end gap-1">
@@ -111,7 +110,6 @@ function PricingPage() {
             )}
           </article>
 
-          {/* Pro */}
           <article className="relative flex flex-col rounded-[24px] border border-amber-300/30 bg-[#0c0c0f] p-6">
             <span className="absolute right-6 top-6 rounded-full border border-amber-300/30 bg-amber-300/[0.12] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-amber-300">
               Pro
