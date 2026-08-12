@@ -6,7 +6,8 @@ import { SpanStatusCode } from '@opentelemetry/api'
 import { getOptionalEnv } from '../env'
 import { callGemini } from '../llm/gemini'
 import { tracer } from '../observability'
-import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
+import { parseFindings, SEVERITIES } from '../review-engine/findings'
+import type { LlmFinding } from '../review-engine/llm'
 import type { RepoFile } from './github'
 
 export type ScanResult = {
@@ -16,14 +17,6 @@ export type ScanResult = {
   outputTokens: number
   costUsd: number
 }
-
-const SEVERITIES: ReviewSeverity[] = [
-  'critical',
-  'high',
-  'medium',
-  'low',
-  'note',
-]
 
 export async function scanCodebase({
   repository,
@@ -84,41 +77,6 @@ export async function scanCodebase({
     } finally {
       span.end()
     }
-  })
-}
-
-function parseFindings(text: string): LlmFinding[] {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return []
-  }
-  const raw =
-    parsed && typeof parsed === 'object' && 'findings' in parsed
-      ? parsed.findings
-      : []
-  if (!Array.isArray(raw)) return []
-
-  return raw.flatMap((item): LlmFinding[] => {
-    if (!item || typeof item !== 'object') return []
-    const r = item as Record<string, unknown>
-    const severity = SEVERITIES.includes(r.severity as ReviewSeverity)
-      ? (r.severity as ReviewSeverity)
-      : 'note'
-    const title = typeof r.title === 'string' ? r.title : ''
-    const filePath = typeof r.filePath === 'string' ? r.filePath : ''
-    if (!title || !filePath) return []
-    return [
-      {
-        severity,
-        title,
-        description: typeof r.description === 'string' ? r.description : '',
-        filePath,
-        lineNumber: typeof r.lineNumber === 'number' ? r.lineNumber : null,
-        suggestion: typeof r.suggestion === 'string' ? r.suggestion : null,
-      },
-    ]
   })
 }
 

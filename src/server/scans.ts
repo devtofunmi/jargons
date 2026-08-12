@@ -2,14 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
+import { summaryToCounts } from './scan-engine/summary'
+import type { ScanFindingCounts, ScanSummary } from './scan-engine/summary'
 
-export type ScanFindingCounts = {
-  critical: number
-  high: number
-  medium: number
-  low: number
-  note: number
-}
+export type { ScanFindingCounts }
 
 export type CodebaseScanItem = {
   id: string
@@ -20,31 +16,6 @@ export type CodebaseScanItem = {
   counts: ScanFindingCounts
   startedAt: string | null
   completedAt: string | null
-}
-
-type ScanSummary = {
-  counts?: Partial<ScanFindingCounts>
-  findings?: Array<unknown>
-}
-
-const emptyCounts: ScanFindingCounts = {
-  critical: 0,
-  high: 0,
-  medium: 0,
-  low: 0,
-  note: 0,
-}
-
-function summaryToCounts(summary: unknown): {
-  counts: ScanFindingCounts
-  findingsCount: number
-} {
-  const parsed = (summary ?? {}) as ScanSummary
-  const counts: ScanFindingCounts = { ...emptyCounts, ...(parsed.counts ?? {}) }
-  const findingsCount = Array.isArray(parsed.findings)
-    ? parsed.findings.length
-    : counts.critical + counts.high + counts.medium + counts.low + counts.note
-  return { counts, findingsCount }
 }
 
 export const getCodebaseScans = createServerFn({ method: 'GET' }).handler(
