@@ -4,6 +4,7 @@
 import { SpanStatusCode } from '@opentelemetry/api'
 
 import { getOptionalEnv } from '../env'
+import { callGemini } from '../llm/gemini'
 import { tracer } from '../observability'
 import type { LlmFinding } from './llm'
 
@@ -23,7 +24,6 @@ export async function generateFixes({
   files: FileToFix[]
 }): Promise<FixedFile[]> {
   const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
-  const apiKey = getOptionalEnv('GEMINI_API_KEY', '')
 
   return tracer.startActiveSpan('llm.autofix', async (span) => {
     span.setAttributes({
@@ -33,45 +33,22 @@ export async function generateFixes({
     })
 
     try {
-      if (!apiKey) {
-        throw new Error('GEMINI_API_KEY is not set')
-      }
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: [{ role: 'user', parts: [{ text: userPrompt(files) }] }],
-            generationConfig: {
-              temperature: 0,
-              responseMimeType: 'application/json',
-              responseSchema: RESPONSE_SCHEMA,
-              // Larger cap than review/scan since autofix returns whole files;
-              // still bounded, and thinking disabled to control cost.
-              maxOutputTokens: 16384,
-              thinkingConfig: { thinkingBudget: 0 },
-            },
-          }),
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(
-          `Gemini autofix failed (${response.status}): ${await response.text()}`,
-        )
-      }
-
-      const data = (await response.json()) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
-      }
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
-      const fixed = parseFixed(text, files)
+      const result = await callGemini({
+        model,
+        systemPrompt: SYSTEM_PROMPT,
+        userPrompt: userPrompt(files),
+        responseSchema: RESPONSE_SCHEMA,
+        // Larger cap than review/scan since autofix returns whole files.
+        maxOutputTokens: 16384,
+        // Deterministic edits.
+        temperature: 0,
+        // Bounded by openFixPr's outer 45s cap: match the per-attempt timeout
+        // to it and skip the retry so a slow-but-valid fix isn't aborted early
+        // or retried past the budget.
+        timeoutMs: 45_000,
+        maxAttempts: 1,
+      })
+      const fixed = parseFixed(result.text, files)
 
       span.setAttribute('jargons.files_fixed', fixed.length)
       span.setStatus({ code: SpanStatusCode.OK })
