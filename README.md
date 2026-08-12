@@ -1,6 +1,6 @@
 # Jargons — AI code review that gets your code
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue.svg)](LICENSE.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![CI](https://github.com/devtofunmi/jargons/actions/workflows/ci.yml/badge.svg)](https://github.com/devtofunmi/jargons/actions/workflows/ci.yml)
 
@@ -109,4 +109,9 @@ Found a vulnerability? Please report it privately — see
 
 ## License
 
-[MIT](LICENSE) © devtofunmi
+Jargons is **source-available** under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md) © devtofunmi. You're welcome
+to read, modify, and contribute, and to use Jargons for **noncommercial**
+purposes (personal projects, research, education, nonprofits). Commercial use —
+including running it as a hosted service — is **not** granted by this license;
+contact the maintainer for commercial licensing.
