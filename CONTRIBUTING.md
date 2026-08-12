@@ -55,6 +55,24 @@ fixes — run it before committing so your diff stays clean.
 - **Update docs** when you change behavior or configuration.
 - Make sure `npm run lint` and `npm run check` pass.
 
+## Contributor License
+
+By submitting a contribution to this project (for example, a pull request),
+you agree that:
+
+- You grant **devtofunmi** (the project maintainer) a perpetual, worldwide,
+  non-exclusive, royalty-free, irrevocable license to use, reproduce, modify,
+  adapt, publish, distribute, sublicense, and relicense your contribution and
+  derivative works of it, **including for commercial purposes** (such as the
+  hosted Jargons service). This is in addition to the project's PolyForm
+  Noncommercial license that applies to everyone else.
+- Your contribution is your original work, and you have the right to grant this
+  license.
+- You provide your contribution "as is", without warranties.
+
+You keep the copyright to your contribution — this only grants the maintainer
+permission to use it.
+
 ## Project layout
 
 A quick map lives in the [README](README.md#repository-layout). In short:
