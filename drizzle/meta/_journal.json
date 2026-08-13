@@ -8,6 +8,13 @@
       "when": 1786571980089,
       "tag": "0000_small_mandarin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786644826598,
+      "tag": "0001_jazzy_darkstar",
+      "breakpoints": true
     }
   ]
 }
