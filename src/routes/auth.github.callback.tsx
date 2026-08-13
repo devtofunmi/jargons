@@ -23,7 +23,7 @@ export const Route = createFileRoute('/auth/github/callback')({
         } catch (error) {
           console.error('GitHub auth callback failed', error)
 
-          return redirectToSignIn(getErrorMessage(error), url.origin)
+          return redirectToSignIn(getSafeMessage(error), url.origin)
         }
       },
     },
@@ -48,18 +48,25 @@ function redirectTo(url: URL) {
   })
 }
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
+// Never surface the raw error to the user: it ends up in the ?error= query and
+// is rendered on the sign-in page, and an auth failure can wrap a DB error
+// whose message contains SQL and params (e.g. the user's email). The real error
+// is logged above; return a safe, generic message — and treat connectivity/DB
+// failures as a temporary outage. The message is only inspected here, not shown.
+function getSafeMessage(error: unknown): string {
+  const text =
+    error instanceof Error ? `${error.name} ${error.message}`.toLowerCase() : ''
+  const looksTransient =
+    text.includes('failed query') ||
+    text.includes('etimedout') ||
+    text.includes('econnrefused') ||
+    text.includes('connect_timeout') ||
+    text.includes('econnreset') ||
+    text.includes('connection') ||
+    text.includes('timeout') ||
+    text.includes('fetch failed')
 
-  if (typeof error === 'object' && error !== null && 'message' in error) {
-    const message = error.message
-
-    if (typeof message === 'string' && message.length > 0) {
-      return message
-    }
-  }
-
-  return 'Unable to finish GitHub sign in.'
+  return looksTransient
+    ? 'We could not reach our systems. Please try again in a moment.'
+    : 'We could not complete GitHub sign in. Please try again.'
 }
