@@ -333,12 +333,22 @@ export async function exchangeGitHubCode(code: string) {
   return token.access_token
 }
 
-function getAuthErrorMessage(error: unknown) {
-  if (!(error instanceof Error)) {
-    return 'Unable to finish GitHub sign in.'
-  }
+function getAuthErrorMessage(error: unknown): string {
+  // Never return the raw error message: it can wrap a DB error whose text
+  // contains SQL and params (e.g. the user's email). Callers log the real
+  // error; users get a safe, generic message.
+  const text =
+    error instanceof Error ? `${error.name} ${error.message}`.toLowerCase() : ''
+  const looksTransient =
+    text.includes('failed query') ||
+    text.includes('timeout') ||
+    text.includes('connect') ||
+    text.includes('connection') ||
+    text.includes('fetch failed')
 
-  return error.message || 'Unable to finish GitHub sign in.'
+  return looksTransient
+    ? 'We could not reach our systems. Please try again in a moment.'
+    : 'We could not complete GitHub sign in. Please try again.'
 }
 
 export async function getGitHubUser(accessToken: string) {
