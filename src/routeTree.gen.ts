@@ -15,6 +15,7 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as UpgradeSuccessRouteImport } from './routes/upgrade.success'
@@ -26,6 +27,7 @@ import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppScansRouteImport } from './routes/app.scans'
 import { Route as AppReviewsRouteImport } from './routes/app.reviews'
 import { Route as AppRepositoriesRouteImport } from './routes/app.repositories'
+import { Route as ApiTrackRouteImport } from './routes/api.track'
 import { Route as AppScansIndexRouteImport } from './routes/app.scans.index'
 import { Route as AppReviewsIndexRouteImport } from './routes/app.reviews.index'
 import { Route as AppRepositoriesIndexRouteImport } from './routes/app.repositories.index'
@@ -39,6 +41,7 @@ import { Route as ApiScansStartRouteImport } from './routes/api.scans.start'
 import { Route as ApiGithubWebhookRouteImport } from './routes/api.github.webhook'
 import { Route as ApiBillingWebhookRouteImport } from './routes/api.billing.webhook'
 import { Route as ApiBillingCheckoutRouteImport } from './routes/api.billing.checkout'
+import { Route as ApiAdminSetPlanRouteImport } from './routes/api.admin.set-plan'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -68,6 +71,11 @@ const DocsRoute = DocsRouteImport.update({
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -124,6 +132,11 @@ const AppRepositoriesRoute = AppRepositoriesRouteImport.update({
   id: '/repositories',
   path: '/repositories',
   getParentRoute: () => AppRoute,
+} as any)
+const ApiTrackRoute = ApiTrackRouteImport.update({
+  id: '/api/track',
+  path: '/api/track',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppScansIndexRoute = AppScansIndexRouteImport.update({
   id: '/',
@@ -190,15 +203,22 @@ const ApiBillingCheckoutRoute = ApiBillingCheckoutRouteImport.update({
   path: '/api/billing/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminSetPlanRoute = ApiAdminSetPlanRouteImport.update({
+  id: '/api/admin/set-plan',
+  path: '/api/admin/set-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/app': typeof AppRouteWithChildren
   '/docs': typeof DocsRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/api/track': typeof ApiTrackRoute
   '/app/repositories': typeof AppRepositoriesRouteWithChildren
   '/app/reviews': typeof AppReviewsRouteWithChildren
   '/app/scans': typeof AppScansRouteWithChildren
@@ -209,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app/': typeof AppIndexRoute
+  '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
   '/api/github/webhook': typeof ApiGithubWebhookRoute
@@ -225,11 +246,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/docs': typeof DocsRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/api/track': typeof ApiTrackRoute
   '/app/settings': typeof AppSettingsRoute
   '/auth/connect': typeof AuthConnectRoute
   '/auth/setup': typeof AuthSetupRoute
@@ -237,6 +260,7 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app': typeof AppIndexRoute
+  '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
   '/api/github/webhook': typeof ApiGithubWebhookRoute
@@ -254,12 +278,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/app': typeof AppRouteWithChildren
   '/docs': typeof DocsRoute
   '/onboarding': typeof OnboardingRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/api/track': typeof ApiTrackRoute
   '/app/repositories': typeof AppRepositoriesRouteWithChildren
   '/app/reviews': typeof AppReviewsRouteWithChildren
   '/app/scans': typeof AppScansRouteWithChildren
@@ -270,6 +296,7 @@ export interface FileRoutesById {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app/': typeof AppIndexRoute
+  '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
   '/api/github/webhook': typeof ApiGithubWebhookRoute
@@ -288,12 +315,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/app'
     | '/docs'
     | '/onboarding'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/api/track'
     | '/app/repositories'
     | '/app/reviews'
     | '/app/scans'
@@ -304,6 +333,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/upgrade/success'
     | '/app/'
+    | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
     | '/api/github/webhook'
@@ -320,11 +350,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/docs'
     | '/onboarding'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/api/track'
     | '/app/settings'
     | '/auth/connect'
     | '/auth/setup'
@@ -332,6 +364,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/upgrade/success'
     | '/app'
+    | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
     | '/api/github/webhook'
@@ -348,12 +381,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/app'
     | '/docs'
     | '/onboarding'
     | '/pricing'
     | '/privacy'
     | '/terms'
+    | '/api/track'
     | '/app/repositories'
     | '/app/reviews'
     | '/app/scans'
@@ -364,6 +399,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/upgrade/success'
     | '/app/'
+    | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
     | '/api/github/webhook'
@@ -381,17 +417,20 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AppRoute: typeof AppRouteWithChildren
   DocsRoute: typeof DocsRoute
   OnboardingRoute: typeof OnboardingRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  ApiTrackRoute: typeof ApiTrackRoute
   AuthConnectRoute: typeof AuthConnectRoute
   AuthSetupRoute: typeof AuthSetupRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   UpgradeSuccessRoute: typeof UpgradeSuccessRoute
+  ApiAdminSetPlanRoute: typeof ApiAdminSetPlanRoute
   ApiBillingCheckoutRoute: typeof ApiBillingCheckoutRoute
   ApiBillingWebhookRoute: typeof ApiBillingWebhookRoute
   ApiGithubWebhookRoute: typeof ApiGithubWebhookRoute
@@ -443,6 +482,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -521,6 +567,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/repositories'
       preLoaderRoute: typeof AppRepositoriesRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/track': {
+      id: '/api/track'
+      path: '/api/track'
+      fullPath: '/api/track'
+      preLoaderRoute: typeof ApiTrackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/scans/': {
       id: '/app/scans/'
@@ -613,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/set-plan': {
+      id: '/api/admin/set-plan'
+      path: '/api/admin/set-plan'
+      fullPath: '/api/admin/set-plan'
+      preLoaderRoute: typeof ApiAdminSetPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -678,17 +738,20 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AppRoute: AppRouteWithChildren,
   DocsRoute: DocsRoute,
   OnboardingRoute: OnboardingRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  ApiTrackRoute: ApiTrackRoute,
   AuthConnectRoute: AuthConnectRoute,
   AuthSetupRoute: AuthSetupRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   UpgradeSuccessRoute: UpgradeSuccessRoute,
+  ApiAdminSetPlanRoute: ApiAdminSetPlanRoute,
   ApiBillingCheckoutRoute: ApiBillingCheckoutRoute,
   ApiBillingWebhookRoute: ApiBillingWebhookRoute,
   ApiGithubWebhookRoute: ApiGithubWebhookRoute,
