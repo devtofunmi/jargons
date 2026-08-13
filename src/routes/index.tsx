@@ -17,6 +17,7 @@ import {
 import { useState } from 'react'
 
 import { OwlMark } from '../components/owl-mark'
+import { PageView } from '../components/page-view'
 import {
   featureItems,
   footerColumns,
@@ -440,6 +441,7 @@ function Home() {
 
   return (
     <main id="top" className="overflow-hidden bg-[#080809] text-white">
+      <PageView path="/" />
       <Header isSignedIn={isSignedIn} />
 
       <section className="hero-stage relative border-b border-white/[0.07] bg-[#080809] px-5 pb-24 pt-36 sm:px-8 sm:pt-44 lg:pb-32">
