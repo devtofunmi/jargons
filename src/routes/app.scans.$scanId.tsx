@@ -12,7 +12,7 @@ import {
   ScanSearch,
   Sparkles,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { DetailPageSkeleton } from '../components/skeletons'
 import { timeAgo } from '../lib/format'
@@ -46,7 +46,41 @@ const severityStyles: Record<CodebaseScanFinding['severity'], string> = {
 }
 
 function ScanDetailPage() {
-  const { scan, canRun } = Route.useLoaderData()
+  const loaderData = Route.useLoaderData()
+  const canRun = loaderData.canRun
+  const [scan, setScan] = useState(loaderData.scan)
+
+  // Re-sync when the route loader re-runs (e.g. navigating to another scan).
+  useEffect(() => {
+    setScan(loaderData.scan)
+  }, [loaderData.scan])
+
+  const isScanning = scan.status === 'queued' || scan.status === 'running'
+
+  // The loader fetches the scan once. While it's still running, poll for the
+  // result so the page fills in live instead of appearing stuck on "running"
+  // until a manual reload.
+  useEffect(() => {
+    if (!isScanning) return
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+
+    const poll = async () => {
+      try {
+        const next = await getCodebaseScan({ data: { scanId: scan.id } })
+        if (active && next) setScan(next)
+      } catch {
+        // transient — keep polling
+      }
+      if (active) timer = setTimeout(() => void poll(), 2500)
+    }
+
+    timer = setTimeout(() => void poll(), 2000)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [isScanning, scan.id])
 
   return (
     <section className="mx-auto max-w-7xl">
@@ -114,65 +148,129 @@ function ScanDetailPage() {
           <h2 className="text-lg font-medium tracking-[-0.03em]">Findings</h2>
         </div>
 
-        <div className="mt-6 grid gap-3 lg:grid-cols-2">
-          {scan.findings.length > 0 ? (
-            scan.findings.map((finding, index) => (
-              <div
-                key={`${finding.filePath}-${finding.lineNumber ?? 'x'}-${index}`}
-                className="rounded-2xl border border-white/[0.07] bg-[#09090b] p-5"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-semibold text-zinc-100">
-                    {finding.title}
-                  </h3>
-                  <span
-                    className={`rounded-full border px-2 py-1 font-mono text-[8px] uppercase ${severityStyles[finding.severity]}`}
-                  >
-                    {finding.severity}
-                  </span>
-                </div>
-                <p className="mt-3 flex items-center gap-1.5 font-mono text-[10px] text-zinc-600">
-                  <FileCode className="size-3" />
-                  {finding.filePath}
-                  {finding.lineNumber ? `:${finding.lineNumber}` : ''}
-                </p>
-                <p className="mt-3 text-sm leading-6 text-zinc-500">
-                  {finding.description}
-                </p>
-                {finding.suggestion ? (
-                  <div className="mt-4 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.035] p-4">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-emerald-300">
-                      suggested fix
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-400">
-                      {finding.suggestion}
-                    </p>
+        {isScanning ? (
+          <ScanningFindings repository={scan.repository} />
+        ) : (
+          <div className="mt-6 grid gap-3 lg:grid-cols-2">
+            {scan.findings.length > 0 ? (
+              scan.findings.map((finding, index) => (
+                <div
+                  key={`${finding.filePath}-${finding.lineNumber ?? 'x'}-${index}`}
+                  className="rounded-2xl border border-white/[0.07] bg-[#09090b] p-5"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold text-zinc-100">
+                      {finding.title}
+                    </h3>
+                    <span
+                      className={`rounded-full border px-2 py-1 font-mono text-[8px] uppercase ${severityStyles[finding.severity]}`}
+                    >
+                      {finding.severity}
+                    </span>
                   </div>
-                ) : null}
+                  <p className="mt-3 flex items-center gap-1.5 font-mono text-[10px] text-zinc-600">
+                    <FileCode className="size-3" />
+                    {finding.filePath}
+                    {finding.lineNumber ? `:${finding.lineNumber}` : ''}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-zinc-500">
+                    {finding.description}
+                  </p>
+                  {finding.suggestion ? (
+                    <div className="mt-4 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.035] p-4">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-emerald-300">
+                        suggested fix
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-zinc-400">
+                        {finding.suggestion}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/[0.1] bg-[#09090b] p-5">
+                <Sparkles className="size-5 text-emerald-300" />
+                <h3 className="mt-4 text-sm font-semibold text-zinc-200">
+                  {scan.status === 'complete'
+                    ? 'No findings'
+                    : scan.status === 'failed'
+                      ? 'Scan failed'
+                      : 'Scan in progress'}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  {scan.status === 'complete'
+                    ? 'Jargons did not find anything risky in the scanned files.'
+                    : scan.status === 'failed'
+                      ? 'This scan did not finish. Try starting a new scan.'
+                      : 'Findings will appear here once the scan finishes.'}
+                </p>
               </div>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-dashed border-white/[0.1] bg-[#09090b] p-5">
-              <Sparkles className="size-5 text-emerald-300" />
-              <h3 className="mt-4 text-sm font-semibold text-zinc-200">
-                {scan.status === 'complete'
-                  ? 'No findings'
-                  : scan.status === 'failed'
-                    ? 'Scan failed'
-                    : 'Scan in progress'}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
-                {scan.status === 'complete'
-                  ? 'Jargons did not find anything risky in the scanned files.'
-                  : scan.status === 'failed'
-                    ? 'This scan did not finish. Try starting a new scan.'
-                    : 'Findings will appear here once the scan finishes.'}
-              </p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </article>
     </section>
+  )
+}
+
+// Contained "scanning" state for the Findings card: a cyan radar pulse, a live
+// status line, and placeholder cards that glow in sequence — shown while the
+// scan is queued/running (the page polls for the real findings).
+function ScanningFindings({ repository }: { repository: string }) {
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-4 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.03] p-5">
+        <div className="relative grid size-14 shrink-0 place-items-center">
+          <span className="absolute size-full animate-ping rounded-full bg-cyan-400/10" />
+          <span className="absolute size-2/3 animate-ping rounded-full bg-cyan-400/20 [animation-delay:500ms]" />
+          <span className="grid size-11 place-items-center rounded-full border border-cyan-300/30 bg-cyan-300/[0.08] text-cyan-300">
+            <ScanSearch className="size-5 animate-pulse" />
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className="flex items-center text-sm font-medium text-zinc-200">
+            Scanning {repository}
+            <span className="ml-0.5 inline-flex">
+              <span className="animate-[soft-blink_1.4s_infinite]">.</span>
+              <span className="animate-[soft-blink_1.4s_infinite] [animation-delay:200ms]">
+                .
+              </span>
+              <span className="animate-[soft-blink_1.4s_infinite] [animation-delay:400ms]">
+                .
+              </span>
+            </span>
+          </p>
+          <p className="mt-1 text-sm leading-6 text-zinc-500">
+            Reading files and hunting for bugs, security issues, and structural
+            risks.
+          </p>
+          <div className="mt-3 h-1 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.06]">
+            <div className="h-full w-full origin-left rounded-full bg-gradient-to-r from-cyan-400/30 to-cyan-300 animate-[progress-run_1.8s_ease-in-out_infinite]" />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="animate-[context-focus_2.6s_ease-in-out_infinite] rounded-2xl border border-white/[0.07] bg-[#09090b] p-5"
+            style={{ animationDelay: `${i * 260}ms` }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1/2 animate-pulse rounded bg-white/[0.06]" />
+              <div className="h-4 w-12 animate-pulse rounded-full bg-white/[0.05]" />
+            </div>
+            <div className="mt-3 h-2.5 w-2/5 animate-pulse rounded bg-white/[0.04]" />
+            <div className="mt-4 space-y-2">
+              <div className="h-2.5 w-full animate-pulse rounded bg-white/[0.04]" />
+              <div className="h-2.5 w-4/6 animate-pulse rounded bg-white/[0.04]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
