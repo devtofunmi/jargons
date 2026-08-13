@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -238,6 +239,26 @@ export const findings = pgTable('findings', {
     .notNull()
     .defaultNow(),
 })
+
+// Lightweight, privacy-light page-view tracking for the public marketing pages
+// (no PII — just the path, the visitor's country from the edge geo header, and
+// the referrer). Feeds the admin analytics dashboard.
+export const pageViews = pgTable(
+  'page_views',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    path: text('path').notNull(),
+    // ISO 3166-1 alpha-2 country code from the edge geo header; null if unknown.
+    country: text('country'),
+    referrer: text('referrer'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    createdAtIdx: index('page_views_created_at_idx').on(table.createdAt),
+  }),
+)
 
 export const codebaseScans = pgTable('codebase_scans', {
   id: uuid('id').primaryKey().defaultRandom(),
