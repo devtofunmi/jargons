@@ -55,7 +55,11 @@ export const Route = createRootRoute({
       },
       {
         property: 'og:image',
-        content: 'https://www.jargons.run/og.png',
+        content: 'https://www.jargons.run/og.jpg',
+      },
+      {
+        property: 'og:image:type',
+        content: 'image/jpeg',
       },
       {
         property: 'og:image:width',
@@ -85,7 +89,7 @@ export const Route = createRootRoute({
       },
       {
         name: 'twitter:image',
-        content: 'https://www.jargons.run/og.png',
+        content: 'https://www.jargons.run/og.jpg',
       },
     ],
     links: [
