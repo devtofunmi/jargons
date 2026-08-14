@@ -62,6 +62,14 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
                 </td>
                 <td className="py-3 pr-4 text-right font-mono text-zinc-400">
                   {user.runsUsed}
+                  {user.bonusRuns > 0 ? (
+                    <span
+                      className="ml-1 text-[10px] text-cyan-300/80"
+                      title="Operator-granted bonus runs"
+                    >
+                      +{user.bonusRuns}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="py-3 pr-4 text-right font-mono text-zinc-400">
                   {user.repos}
@@ -77,10 +85,15 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
                 </td>
                 <td className="py-3">
                   {user.workspaceId && user.plan ? (
-                    <PlanToggle
-                      workspaceId={user.workspaceId}
-                      plan={user.plan}
-                    />
+                    <div className="flex items-center justify-end gap-2">
+                      {user.plan === 'free' ? (
+                        <RunsGrant workspaceId={user.workspaceId} />
+                      ) : null}
+                      <PlanToggle
+                        workspaceId={user.workspaceId}
+                        plan={user.plan}
+                      />
+                    </div>
                   ) : (
                     <span className="font-mono text-[10px] text-zinc-600">
                       no workspace
@@ -149,5 +162,55 @@ function PlanToggle({
     >
       {busy ? '…' : next === 'pro' ? 'Make Pro' : 'Make Free'}
     </button>
+  )
+}
+
+// Grant a free workspace one-time bonus runs for its current window.
+function RunsGrant({ workspaceId }: { workspaceId: string }) {
+  const router = useRouter()
+  const [runs, setRuns] = useState(5)
+  const [busy, setBusy] = useState(false)
+
+  async function grant() {
+    if (busy || runs < 1) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/add-runs', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId, runs }),
+      })
+      if (res.ok) {
+        await router.invalidate()
+      }
+    } catch {
+      // ignore — the control re-enables and the operator can retry
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="inline-flex items-center overflow-hidden rounded-lg border border-white/[0.1] bg-white/[0.03]">
+      <input
+        type="number"
+        min={1}
+        max={1000}
+        value={runs}
+        onChange={(event) =>
+          setRuns(Math.max(1, Math.min(1000, Number(event.target.value) || 1)))
+        }
+        aria-label="Runs to grant"
+        className="w-11 bg-transparent px-2 py-1.5 text-right font-mono text-[11px] text-zinc-200 outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+      <button
+        type="button"
+        className="border-l border-white/[0.1] px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-cyan-300 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={busy}
+        onClick={() => void grant()}
+      >
+        {busy ? '…' : '+ runs'}
+      </button>
+    </div>
   )
 }

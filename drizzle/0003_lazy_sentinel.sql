@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "bonus_runs" integer DEFAULT 0 NOT NULL;

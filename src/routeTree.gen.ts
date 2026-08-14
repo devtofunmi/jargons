@@ -42,6 +42,7 @@ import { Route as ApiGithubWebhookRouteImport } from './routes/api.github.webhoo
 import { Route as ApiBillingWebhookRouteImport } from './routes/api.billing.webhook'
 import { Route as ApiBillingCheckoutRouteImport } from './routes/api.billing.checkout'
 import { Route as ApiAdminSetPlanRouteImport } from './routes/api.admin.set-plan'
+import { Route as ApiAdminAddRunsRouteImport } from './routes/api.admin.add-runs'
 import { Route as AppScansScanIdIndexRouteImport } from './routes/app.scans.$scanId.index'
 import { Route as AppScansScanIdFindingIdRouteImport } from './routes/app.scans.$scanId.$findingId'
 
@@ -210,6 +211,11 @@ const ApiAdminSetPlanRoute = ApiAdminSetPlanRouteImport.update({
   path: '/api/admin/set-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminAddRunsRoute = ApiAdminAddRunsRouteImport.update({
+  id: '/api/admin/add-runs',
+  path: '/api/admin/add-runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppScansScanIdIndexRoute = AppScansScanIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app/': typeof AppIndexRoute
+  '/api/admin/add-runs': typeof ApiAdminAddRunsRoute
   '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
@@ -274,6 +281,7 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app': typeof AppIndexRoute
+  '/api/admin/add-runs': typeof ApiAdminAddRunsRoute
   '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
@@ -311,6 +319,7 @@ export interface FileRoutesById {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app/': typeof AppIndexRoute
+  '/api/admin/add-runs': typeof ApiAdminAddRunsRoute
   '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
@@ -350,6 +359,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/upgrade/success'
     | '/app/'
+    | '/api/admin/add-runs'
     | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/upgrade/success'
     | '/app'
+    | '/api/admin/add-runs'
     | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/upgrade/success'
     | '/app/'
+    | '/api/admin/add-runs'
     | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
@@ -452,6 +464,7 @@ export interface RootRouteChildren {
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   UpgradeSuccessRoute: typeof UpgradeSuccessRoute
+  ApiAdminAddRunsRoute: typeof ApiAdminAddRunsRoute
   ApiAdminSetPlanRoute: typeof ApiAdminSetPlanRoute
   ApiBillingCheckoutRoute: typeof ApiBillingCheckoutRoute
   ApiBillingWebhookRoute: typeof ApiBillingWebhookRoute
@@ -695,6 +708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSetPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/add-runs': {
+      id: '/api/admin/add-runs'
+      path: '/api/admin/add-runs'
+      fullPath: '/api/admin/add-runs'
+      preLoaderRoute: typeof ApiAdminAddRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/scans/$scanId/': {
       id: '/app/scans/$scanId/'
       path: '/'
@@ -801,6 +821,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   UpgradeSuccessRoute: UpgradeSuccessRoute,
+  ApiAdminAddRunsRoute: ApiAdminAddRunsRoute,
   ApiAdminSetPlanRoute: ApiAdminSetPlanRoute,
   ApiBillingCheckoutRoute: ApiBillingCheckoutRoute,
   ApiBillingWebhookRoute: ApiBillingWebhookRoute,
@@ -813,3 +834,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

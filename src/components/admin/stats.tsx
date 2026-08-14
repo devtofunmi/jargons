@@ -43,7 +43,7 @@ export function AdminStats({ totals }: { totals: AdminOverview['totals'] }) {
         <article key={label} className="app-card p-4">
           <div className="flex items-center gap-2">
             <Icon className="size-3.5 text-zinc-600" />
-            <p className="font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600">
+            <p className="whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600">
               {label}
             </p>
           </div>

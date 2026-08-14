@@ -87,6 +87,10 @@ export const workspaces = pgTable('workspaces', {
   // Start of the current run-counting window. runsUsed resets to 0 when the
   // calendar month rolls over past this, giving Pro a monthly quota.
   runsPeriodStart: timestamp('runs_period_start', { withTimezone: true }),
+  // One-time extra runs an operator has granted for the current window. Adds to
+  // the plan's run limit and resets to 0 with runsUsed when the month rolls
+  // over, so a grant never recurs.
+  bonusRuns: integer('bonus_runs').notNull().default(0),
   // Bachs billing identifiers, set when the workspace subscribes. The customer
   // id links webhook events back to this workspace.
   bachsCustomerId: text('bachs_customer_id'),

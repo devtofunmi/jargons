@@ -1,6 +1,6 @@
 import { Globe } from 'lucide-react'
 
-import { countryFlag } from '../../lib/country'
+import { CountryFlag } from './country-flag'
 import type { AdminOverview } from '../../server/admin'
 
 // Top landing-page visitor countries, as share-of-total bars.
@@ -27,8 +27,8 @@ export function AdminCountries({
         <ul className="mt-5 space-y-3">
           {countries.map((entry) => (
             <li key={entry.country} className="flex items-center gap-3">
-              <span className="w-7 text-center text-base leading-none">
-                {countryFlag(entry.country)}
+              <span className="flex w-7 justify-center">
+                <CountryFlag code={entry.country} />
               </span>
               <span className="w-8 font-mono text-[11px] uppercase text-zinc-400">
                 {entry.country}
