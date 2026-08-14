@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import type { Severity } from '../lib/severity'
 import { loadDb as loadDatabase } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 
@@ -18,7 +19,7 @@ export type ReviewRunListItem = {
 
 export type ReviewFindingItem = {
   id: string
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'note'
+  severity: Severity
   title: string
   description: string
   filePath: string
