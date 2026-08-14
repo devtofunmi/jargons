@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { SeverityBadge } from './issue-badges'
 import type { IssueSeverity } from './issue-types'
+import { MarkdownBody } from './markdown-body'
 
 type FindingCardProps = {
   title: string
@@ -51,13 +52,14 @@ export function FindingCard({
           {lineNumber ? `:${lineNumber}` : ''}
         </span>
       </p>
-      <p
-        className={`mt-3 text-sm leading-6 text-zinc-500${
-          interactive ? ' line-clamp-2' : ''
+      <MarkdownBody
+        plainLinks={interactive}
+        className={`mt-2 [&>:first-child]:mt-0 [&>:last-child]:mb-0${
+          interactive ? ' [&_p]:line-clamp-2' : ''
         }`}
       >
         {description}
-      </p>
+      </MarkdownBody>
       {footer}
     </div>
   )
