@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 
 import { FindingCard } from '../components/issues/finding-card'
+import { MarkdownBody } from '../components/issues/markdown-body'
 import { DetailPageSkeleton } from '../components/skeletons'
 import { timeAgo } from '../lib/format'
 import { getReviewRun } from '../server/reviews'
@@ -85,9 +86,9 @@ function ReviewDetailPage() {
                       <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-emerald-300">
                         suggested fix
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-zinc-400">
+                      <MarkdownBody className="mt-2 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
                         {finding.suggestion}
-                      </p>
+                      </MarkdownBody>
                     </div>
                   ) : null
                 }
