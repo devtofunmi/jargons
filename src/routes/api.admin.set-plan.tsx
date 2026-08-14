@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { isAdminUsername, setWorkspacePlanAsAdmin } from '../server/admin'
+import { isAdmin, setWorkspacePlanAsAdmin } from '../server/admin'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
 // Admin-only: manually set a workspace's plan (free ↔ pro). Re-checks the admin
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/api/admin/set-plan')({
     handlers: {
       POST: async ({ request }) => {
         const user = await getCurrentUserFromRequest(request)
-        if (!user || !isAdminUsername(user.username)) {
+        if (!user || !(await isAdmin(user))) {
           return json({ error: 'forbidden' }, 403)
         }
 
