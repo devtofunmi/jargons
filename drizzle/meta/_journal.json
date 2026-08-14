@@ -15,6 +15,13 @@
       "when": 1786644826598,
       "tag": "0001_jazzy_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786695596743,
+      "tag": "0002_luxuriant_joseph",
+      "breakpoints": true
     }
   ]
 }
