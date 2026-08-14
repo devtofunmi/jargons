@@ -2,10 +2,33 @@
 // instrumentation.mjs (preloaded before the app); this module just grabs the
 // globals so every call site uses the same names.
 
-import { metrics, trace } from '@opentelemetry/api'
+import { SpanStatusCode, context, metrics, trace } from '@opentelemetry/api'
 import { SeverityNumber, logs } from '@opentelemetry/api-logs'
 
 export const tracer = trace.getTracer('jargons.review-agent')
+
+// Run `fn` inside a child span made current for its duration, so anything it
+// starts nests under it. Records the exception and marks the span errored on a
+// throw, then always ends the span and rethrows — the caller decides what to do
+// with the error.
+export async function withSpan<T>(
+  name: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const span = tracer.startSpan(name)
+  try {
+    return await context.with(trace.setSpan(context.active(), span), fn)
+  } catch (error) {
+    span.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: error instanceof Error ? error.message : name,
+    })
+    span.recordException(error as Error)
+    throw error
+  } finally {
+    span.end()
+  }
+}
 
 const logger = logs.getLogger('jargons.review-agent')
 
