@@ -1,5 +1,7 @@
+import type { Severity } from '../../lib/severity'
+
 // Shared shape for a single issue (a review/scan finding) shown on its own page.
-export type IssueSeverity = 'critical' | 'high' | 'medium' | 'low' | 'note'
+export type IssueSeverity = Severity
 export type IssueStatus = 'open' | 'fix_opened' | 'fixed'
 
 export type Issue = {
