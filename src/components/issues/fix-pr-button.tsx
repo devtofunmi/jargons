@@ -1,6 +1,8 @@
 import { ExternalLink, GitPullRequest, LoaderCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { OwlMark } from '../owl-mark'
+
 // Per-issue "open a fix PR" button. The caller supplies the action, so this
 // stays reusable. On success it links to the opened PR; on failure it just
 // returns to idle so the user can retry (no error banner). While the PR is
@@ -70,14 +72,18 @@ const PHASES = [
   'Opening the pull request',
 ]
 
-// The diff "materializing" rows: sign + a shimmer bar of a fixed width.
-const DIFF_ROWS: Array<{ sign: string; tone: string; width: string }> = [
-  { sign: '-', tone: 'text-red-300', width: '72%' },
-  { sign: '+', tone: 'text-emerald-300', width: '88%' },
-  { sign: '+', tone: 'text-emerald-300', width: '54%' },
-  { sign: ' ', tone: 'text-zinc-600', width: '40%' },
-]
+const CODE_LINES: Array<{ n: number; kind: 'ctx' | 'del' | 'add'; w: string }> =
+  [
+    { n: 66, kind: 'ctx', w: '58%' },
+    { n: 67, kind: 'ctx', w: '44%' },
+    { n: 68, kind: 'del', w: '74%' },
+    { n: 68, kind: 'add', w: '82%' },
+    { n: 69, kind: 'add', w: '52%' },
+    { n: 70, kind: 'ctx', w: '38%' },
+  ]
 
+// Full-screen, on-brand loading state: an animated code-diff editor with an
+// amber review beam sweeping down it, on the app's dark background (no modal).
 function FixPrOverlay() {
   const [phase, setPhase] = useState(0)
 
@@ -102,71 +108,90 @@ function FixPrOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#070708] px-6 text-center animate-[reveal_0.4s_ease-out]"
       role="status"
       aria-live="polite"
     >
-      <div className="w-full max-w-md rounded-[28px] border border-white/[0.1] bg-[#0c0c0f] p-8 text-center animate-[reveal_0.35s_ease-out]">
-        <div className="relative mx-auto grid size-24 place-items-center">
-          <span className="absolute size-full animate-ping rounded-full bg-amber-400/10" />
-          <span className="absolute size-2/3 animate-ping rounded-full bg-amber-400/20 [animation-delay:500ms]" />
-          <span
-            className="absolute size-20 animate-spin rounded-full [animation-duration:2.4s]"
-            style={{
-              background:
-                'conic-gradient(from 0deg, transparent 0deg, rgba(251,191,36,0.55) 300deg, transparent 360deg)',
-            }}
-          />
-          <span className="absolute size-20 rounded-full border border-white/[0.08]" />
-          <span className="relative grid size-14 place-items-center rounded-full border border-amber-300/40 bg-[#0c0c0f] text-amber-300">
-            <GitPullRequest className="size-6" />
+      <div className="flex items-center gap-2">
+        <OwlMark className="size-6" />
+        <span className="text-sm font-semibold tracking-[-0.03em] text-zinc-300">
+          jargons
+        </span>
+      </div>
+
+      <div className="relative mt-8 w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0b0b0e] text-left shadow-2xl shadow-black/50">
+        <div className="flex items-center gap-1.5 border-b border-white/[0.07] px-4 py-3">
+          <span className="size-2.5 rounded-full bg-red-400/40" />
+          <span className="size-2.5 rounded-full bg-amber-400/50" />
+          <span className="size-2.5 rounded-full bg-emerald-400/40" />
+          <span className="ml-2 font-mono text-[10px] text-zinc-600">
+            applying fix
           </span>
         </div>
 
-        <p className="mt-7 text-lg font-medium tracking-[-0.02em] text-zinc-100">
-          Opening a fix PR
-        </p>
-        <p
-          key={phase}
-          className="mx-auto mt-2 flex h-5 animate-[reveal_0.4s_ease-out] items-center justify-center font-mono text-xs text-amber-300/80"
-        >
-          {PHASES[phase]}
-          <span className="ml-0.5 inline-flex">
-            <span className="animate-[soft-blink_1.4s_infinite]">.</span>
-            <span className="animate-[soft-blink_1.4s_infinite] [animation-delay:200ms]">
-              .
-            </span>
-            <span className="animate-[soft-blink_1.4s_infinite] [animation-delay:400ms]">
-              .
-            </span>
-          </span>
-        </p>
-
-        <div className="mt-6 space-y-2 overflow-hidden rounded-xl border border-white/[0.08] bg-[#09090b] p-4 text-left">
-          {DIFF_ROWS.map((row, index) => (
+        <div className="space-y-1.5 p-5">
+          {CODE_LINES.map((line, index) => (
             <div
               key={index}
-              className="flex animate-[reveal_0.5s_ease-out] items-center gap-2.5"
-              style={{ animationDelay: `${index * 180}ms` }}
+              className={`flex animate-[terminal-line_2.2s_ease-in-out_infinite] items-center gap-3 rounded px-2 py-0.5 ${
+                line.kind === 'del'
+                  ? 'bg-red-500/[0.06]'
+                  : line.kind === 'add'
+                    ? 'bg-emerald-500/[0.06]'
+                    : ''
+              }`}
+              style={{ animationDelay: `${index * 220}ms` }}
             >
-              <span className={`w-2 font-mono text-xs ${row.tone}`}>
-                {row.sign}
+              <span className="w-4 text-right font-mono text-[10px] text-zinc-700">
+                {line.n}
               </span>
               <span
-                className="h-2 animate-pulse rounded-full bg-white/[0.08]"
-                style={{ width: row.width }}
+                className={`w-2 text-center font-mono text-[11px] ${
+                  line.kind === 'del'
+                    ? 'text-red-400'
+                    : line.kind === 'add'
+                      ? 'text-emerald-400'
+                      : 'text-zinc-700'
+                }`}
+              >
+                {line.kind === 'del' ? '-' : line.kind === 'add' ? '+' : '·'}
+              </span>
+              <span
+                className={`h-2 rounded-full ${
+                  line.kind === 'del'
+                    ? 'bg-red-400/25'
+                    : line.kind === 'add'
+                      ? 'bg-emerald-400/30'
+                      : 'bg-white/[0.08]'
+                }`}
+                style={{ width: line.w }}
               />
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="mt-6 h-1 overflow-hidden rounded-full bg-white/[0.06]">
-          <div className="h-full w-full origin-left rounded-full bg-gradient-to-r from-amber-400/40 to-amber-300 animate-[progress-run_1.8s_ease-in-out_infinite]" />
-        </div>
+      <p className="mt-8 text-lg font-medium tracking-[-0.02em] text-zinc-100">
+        Opening a fix PR
+      </p>
+      <p
+        key={phase}
+        className="mt-2 flex h-5 animate-[reveal_0.4s_ease-out] items-center font-mono text-xs text-amber-300/80"
+      >
+        {PHASES[phase]}
+        <span className="ml-0.5 inline-flex">
+          <span className="animate-[soft-blink_1.4s_infinite]">.</span>
+          <span className="animate-[soft-blink_1.4s_infinite] [animation-delay:200ms]">
+            .
+          </span>
+          <span className="animate-[soft-blink_1.4s_infinite] [animation-delay:400ms]">
+            .
+          </span>
+        </span>
+      </p>
 
-        <p className="mt-4 text-xs text-zinc-600">
-          This can take up to a minute.
-        </p>
+      <div className="mt-6 h-1 w-full max-w-xs overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="h-full w-full origin-left rounded-full bg-gradient-to-r from-amber-400/40 to-amber-300 animate-[progress-run_1.8s_ease-in-out_infinite]" />
       </div>
     </div>
   )
