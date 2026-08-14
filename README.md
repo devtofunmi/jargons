@@ -85,9 +85,11 @@ Open a pull request on a connected repo → watch the review appear on the PR, w
 | Path                                      | What's there                                |
 | ----------------------------------------- | ------------------------------------------- |
 | `src/server/review-engine/`               | PR review agent (github, llm, orchestrator) |
-| `src/server/review-engine/open-fix-pr.ts` | Opens a PR that applies review fixes        |
+| `src/server/review-engine/open-fix-pr.ts` | Shared fix-PR helper (review + scan)        |
 | `src/server/scan-engine/`                 | Codebase scan agent                         |
 | `src/server/scans.ts`                     | Scan queries + user-initiated scan fix PRs  |
+| `src/server/github-app/`                  | GitHub App auth, REST client, repo sync     |
+| `src/lib/severity.ts`                     | Finding severities — shared source of truth |
 | `src/routes/api.github.webhook.tsx`       | Webhook ingestion (HMAC-verified)           |
 
 ---
