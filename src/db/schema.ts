@@ -54,6 +54,9 @@ export const users = pgTable(
     name: text('name'),
     email: text('email'),
     avatarUrl: text('avatar_url'),
+    // Operator/admin access to the /admin dashboard. The owner is always an
+    // admin by GitHub id; this grants access to additional accounts.
+    isAdmin: boolean('is_admin').notNull().default(false),
     // Set the first time the user finishes or skips onboarding; null means the
     // guided onboarding has not been dismissed yet.
     onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
