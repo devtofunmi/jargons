@@ -32,84 +32,23 @@ export async function openFixPr(
 ): Promise<string | null> {
   return tracer.startActiveSpan('github.open_fix_pr', async (span) => {
     try {
-      const repository = `${input.owner}/${input.repo}`
-
-      // Group findings by file (skip any without a real path).
-      const byPath = new Map<string, LlmFinding[]>()
-      for (const finding of findings) {
-        if (!finding.filePath) continue
-        byPath.set(finding.filePath, [
-          ...(byPath.get(finding.filePath) ?? []),
-          finding,
-        ])
-      }
-      if (byPath.size === 0) return null
-
-      // Pull the current content of each affected file at the PR head.
-      const files: FileToFix[] = []
-      for (const [path, fileFindings] of byPath) {
-        const file = await fetchFileAtRef({
-          installationId: input.installationId,
-          owner: input.owner,
-          repo: input.repo,
-          ref: input.headSha,
-          path,
-        })
-        if (file) {
-          files.push({ path, content: file.content, findings: fileFindings })
-        }
-      }
-      if (files.length === 0) return null
-
-      const fixes = await generateFixes({ repository, files })
-      if (fixes.length === 0) return null
-
-      const branch = `jargons/fix-pr-${input.prNumber}-${input.headSha.slice(0, 7)}`
-      await createBranch({
+      const result = await applyFindingsAsFixPr({
         installationId: input.installationId,
         owner: input.owner,
         repo: input.repo,
-        branch,
+        findings,
         fromSha: input.headSha,
-      })
-
-      for (const fix of fixes) {
-        // Re-read the blob sha on the branch (handles a pre-existing branch).
-        const current = await fetchFileAtRef({
-          installationId: input.installationId,
-          owner: input.owner,
-          repo: input.repo,
-          ref: branch,
-          path: fix.path,
-        })
-        await commitFileToBranch({
-          installationId: input.installationId,
-          owner: input.owner,
-          repo: input.repo,
-          branch,
-          path: fix.path,
-          content: fix.content,
-          sha: current?.sha,
-          message: `fix: apply Jargons review suggestions to ${fix.path}`,
-        })
-      }
-
-      const url = await openPullRequest({
-        installationId: input.installationId,
-        owner: input.owner,
-        repo: input.repo,
-        head: branch,
         base: input.headRef,
-        title: `Jargons: apply suggested fixes for #${input.prNumber}`,
-        body: fixBody(
-          fixes.map((f) => f.path),
-          input.prNumber,
-        ),
+        branch: `jargons/fix-pr-${input.prNumber}-${input.headSha.slice(0, 7)}`,
+        commitMessage: (path) =>
+          `fix: apply Jargons review suggestions to ${path}`,
+        prTitle: `Jargons: apply suggested fixes for #${input.prNumber}`,
+        prBody: (paths) => fixBody(paths, input.prNumber),
       })
 
-      span.setAttribute('jargons.fix_pr_opened', Boolean(url))
+      span.setAttribute('jargons.fix_pr_opened', result.ok)
       span.setStatus({ code: SpanStatusCode.OK })
-      return url
+      return result.ok ? result.url : null
     } catch (error) {
       span.setStatus({
         code: SpanStatusCode.ERROR,
@@ -121,6 +60,108 @@ export async function openFixPr(
       span.end()
     }
   })
+}
+
+export type ApplyFindingsInput = {
+  installationId: string
+  owner: string
+  repo: string
+  findings: LlmFinding[]
+  /** Sha to branch from and to read each affected file's original content at. */
+  fromSha: string
+  /** Ref the fix PR is opened against. */
+  base: string
+  branch: string
+  commitMessage: (path: string) => string
+  prTitle: string
+  prBody: (paths: string[]) => string
+}
+
+export type ApplyFindingsResult =
+  | { ok: true; url: string }
+  | { ok: false; reason: 'no_paths' | 'no_files' | 'no_fixes' | 'pr_rejected' }
+
+// Shared mechanics behind both the review and scan fix-PR flows: group findings
+// by file, fetch each file, ask the LLM for corrected content, commit the
+// changed files to a fresh branch, and open the PR. Returns a structured result
+// so each caller can map the "nothing happened" cases to its own behaviour (the
+// review flow treats them all as null; the scan flow surfaces a reason to the
+// user). Throws only on a real error — callers own the span + error handling.
+export async function applyFindingsAsFixPr(
+  input: ApplyFindingsInput,
+): Promise<ApplyFindingsResult> {
+  const repository = `${input.owner}/${input.repo}`
+
+  // Group findings by file (skip any without a real path).
+  const byPath = new Map<string, LlmFinding[]>()
+  for (const finding of input.findings) {
+    if (!finding.filePath) continue
+    byPath.set(finding.filePath, [
+      ...(byPath.get(finding.filePath) ?? []),
+      finding,
+    ])
+  }
+  if (byPath.size === 0) return { ok: false, reason: 'no_paths' }
+
+  // Pull the current content of each affected file at the base sha.
+  const files: FileToFix[] = []
+  for (const [path, fileFindings] of byPath) {
+    const file = await fetchFileAtRef({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      ref: input.fromSha,
+      path,
+    })
+    if (file) {
+      files.push({ path, content: file.content, findings: fileFindings })
+    }
+  }
+  if (files.length === 0) return { ok: false, reason: 'no_files' }
+
+  const fixes = await generateFixes({ repository, files })
+  if (fixes.length === 0) return { ok: false, reason: 'no_fixes' }
+
+  await createBranch({
+    installationId: input.installationId,
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+    fromSha: input.fromSha,
+  })
+
+  for (const fix of fixes) {
+    // Re-read the blob sha on the branch (handles a pre-existing branch).
+    const current = await fetchFileAtRef({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      ref: input.branch,
+      path: fix.path,
+    })
+    await commitFileToBranch({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
+      path: fix.path,
+      content: fix.content,
+      sha: current?.sha,
+      message: input.commitMessage(fix.path),
+    })
+  }
+
+  const url = await openPullRequest({
+    installationId: input.installationId,
+    owner: input.owner,
+    repo: input.repo,
+    head: input.branch,
+    base: input.base,
+    title: input.prTitle,
+    body: input.prBody(fixes.map((f) => f.path)),
+  })
+
+  return url ? { ok: true, url } : { ok: false, reason: 'pr_rejected' }
 }
 
 function fixBody(paths: string[], prNumber: number): string {
