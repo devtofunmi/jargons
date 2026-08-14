@@ -199,6 +199,7 @@ export type AdminUserRow = {
   workspaceName: string | null
   plan: 'free' | 'pro' | null
   runsUsed: number
+  bonusRuns: number
   repos: number
   reviews: number
   scans: number
@@ -212,7 +213,7 @@ export const getAdminUsers = createServerFn({ method: 'GET' }).handler(
     const rows = await sqlClient`
       select
         u.id as user_id, u.username, u.name, u.email, u.avatar_url, u.created_at,
-        w.id as workspace_id, w.name as workspace_name, w.plan, w.runs_used,
+        w.id as workspace_id, w.name as workspace_name, w.plan, w.runs_used, w.bonus_runs,
         (select count(*)::int from repositories rp where rp.workspace_id = w.id) as repos,
         (select count(*)::int from review_runs rr
            join pull_requests pr on pr.id = rr.pull_request_id
@@ -236,6 +237,7 @@ export const getAdminUsers = createServerFn({ method: 'GET' }).handler(
       workspaceName: r.workspace_name ? String(r.workspace_name) : null,
       plan: r.plan === 'pro' ? 'pro' : r.workspace_id ? 'free' : null,
       runsUsed: Number(r.runs_used ?? 0),
+      bonusRuns: Number(r.bonus_runs ?? 0),
       repos: Number(r.repos ?? 0),
       reviews: Number(r.reviews ?? 0),
       scans: Number(r.scans ?? 0),
@@ -255,4 +257,14 @@ export async function setWorkspacePlanAsAdmin(
   } else {
     await downgradeWorkspace(workspaceId)
   }
+}
+
+// Admin-only: grant one-time bonus runs to a workspace's current window. The
+// API route re-checks the admin before calling this.
+export async function addWorkspaceRunsAsAdmin(
+  workspaceId: string,
+  runs: number,
+): Promise<void> {
+  const { grantWorkspaceRuns } = await import('./billing')
+  await grantWorkspaceRuns(workspaceId, runs)
 }
