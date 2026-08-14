@@ -1,5 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { SEVERITIES, severityRank } from '../lib/severity'
+import type { Severity } from '../lib/severity'
 import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 import { summaryToCounts } from './scan-engine/summary'
@@ -62,7 +64,7 @@ export const getCodebaseScans = createServerFn({ method: 'GET' }).handler(
 )
 
 export type CodebaseScanFinding = {
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'note'
+  severity: Severity
   title: string
   description: string
   filePath: string
@@ -77,14 +79,6 @@ export type CodebaseScanDetail = CodebaseScanItem & {
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const SEVERITY_ORDER: CodebaseScanFinding['severity'][] = [
-  'critical',
-  'high',
-  'medium',
-  'low',
-  'note',
-]
-
 function summaryToFindings(summary: unknown): CodebaseScanFinding[] {
   const parsed = (summary ?? {}) as ScanSummary
   const raw = Array.isArray(parsed.findings) ? parsed.findings : []
@@ -92,10 +86,8 @@ function summaryToFindings(summary: unknown): CodebaseScanFinding[] {
   const findings = raw.flatMap((item): CodebaseScanFinding[] => {
     if (!item || typeof item !== 'object') return []
     const r = item as Record<string, unknown>
-    const severity = SEVERITY_ORDER.includes(
-      r.severity as CodebaseScanFinding['severity'],
-    )
-      ? (r.severity as CodebaseScanFinding['severity'])
+    const severity = SEVERITIES.includes(r.severity as Severity)
+      ? (r.severity as Severity)
       : 'note'
     const title = typeof r.title === 'string' ? r.title : ''
     const filePath = typeof r.filePath === 'string' ? r.filePath : ''
@@ -113,8 +105,7 @@ function summaryToFindings(summary: unknown): CodebaseScanFinding[] {
   })
 
   return findings.sort(
-    (a, b) =>
-      SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
+    (a, b) => severityRank(a.severity) - severityRank(b.severity),
   )
 }
 
@@ -290,7 +281,8 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
           branch: single
             ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
             : `jargons/fix-scan-${data.scanId.slice(0, 8)}`,
-          commitMessage: (path) => `fix: apply Jargons scan suggestions to ${path}`,
+          commitMessage: (path) =>
+            `fix: apply Jargons scan suggestions to ${path}`,
           prTitle: single
             ? `Jargons: fix "${single.title}"`
             : `Jargons: apply codebase scan fixes`,

@@ -2,15 +2,8 @@
 // no provider coupling, so it's unit-tested directly (findings.test.ts) and
 // shared by both the review and scan adapters.
 
+import { SEVERITIES } from '../../lib/severity'
 import type { LlmFinding, ReviewSeverity } from './llm'
-
-export const SEVERITIES: ReviewSeverity[] = [
-  'critical',
-  'high',
-  'medium',
-  'low',
-  'note',
-]
 
 // The model is asked for `{ findings: [...] }` as JSON. Be defensive: malformed
 // JSON, a missing/!array `findings`, or entries missing a title/filePath are

@@ -1,8 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import { SEVERITIES } from '../lib/severity'
+import type { SeverityCounts } from '../lib/severity'
 import { loadDb } from '../db/load'
 import { getEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
+
+export type { SeverityCounts }
 
 type GitHubInstallation = {
   id: number
@@ -26,14 +30,6 @@ type GitHubRepository = {
 type GitHubInstallationRepositoriesResponse = {
   total_count: number
   repositories: GitHubRepository[]
-}
-
-export type SeverityCounts = {
-  critical: number
-  high: number
-  medium: number
-  low: number
-  note: number
 }
 
 export type SyncedRepository = {
@@ -483,14 +479,6 @@ type RepoStats = {
   bySeverity: SeverityCounts
   lastScanAt: Date | null
 }
-
-const SEVERITIES: Array<keyof SeverityCounts> = [
-  'critical',
-  'high',
-  'medium',
-  'low',
-  'note',
-]
 
 function emptySeverity(): SeverityCounts {
   return { critical: 0, high: 0, medium: 0, low: 0, note: 0 }
