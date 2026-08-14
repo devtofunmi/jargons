@@ -178,7 +178,16 @@ function PricingPage() {
 
         <p className="mt-10 text-sm text-zinc-600">
           Runs reset at the start of each calendar month. Payments are handled
-          securely by Bachs.
+          securely by{' '}
+          <a
+            href="https://bachs.io/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-200"
+          >
+            Bachs
+          </a>
+          .
         </p>
       </section>
     </main>

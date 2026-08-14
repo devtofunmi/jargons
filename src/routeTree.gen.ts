@@ -42,6 +42,8 @@ import { Route as ApiGithubWebhookRouteImport } from './routes/api.github.webhoo
 import { Route as ApiBillingWebhookRouteImport } from './routes/api.billing.webhook'
 import { Route as ApiBillingCheckoutRouteImport } from './routes/api.billing.checkout'
 import { Route as ApiAdminSetPlanRouteImport } from './routes/api.admin.set-plan'
+import { Route as AppScansScanIdIndexRouteImport } from './routes/app.scans.$scanId.index'
+import { Route as AppScansScanIdFindingIdRouteImport } from './routes/app.scans.$scanId.$findingId'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -208,6 +210,16 @@ const ApiAdminSetPlanRoute = ApiAdminSetPlanRouteImport.update({
   path: '/api/admin/set-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppScansScanIdIndexRoute = AppScansScanIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppScansScanIdRoute,
+} as any)
+const AppScansScanIdFindingIdRoute = AppScansScanIdFindingIdRouteImport.update({
+  id: '/$findingId',
+  path: '/$findingId',
+  getParentRoute: () => AppScansScanIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -236,13 +248,15 @@ export interface FileRoutesByFullPath {
   '/api/scans/start': typeof ApiScansStartRoute
   '/app/repositories/$repoId': typeof AppRepositoriesRepoIdRoute
   '/app/reviews/$reviewId': typeof AppReviewsReviewIdRoute
-  '/app/scans/$scanId': typeof AppScansScanIdRoute
+  '/app/scans/$scanId': typeof AppScansScanIdRouteWithChildren
   '/auth/github/callback': typeof AuthGithubCallbackRoute
   '/auth/github/install': typeof AuthGithubInstallRoute
   '/auth/github/start': typeof AuthGithubStartRoute
   '/app/repositories/': typeof AppRepositoriesIndexRoute
   '/app/reviews/': typeof AppReviewsIndexRoute
   '/app/scans/': typeof AppScansIndexRoute
+  '/app/scans/$scanId/$findingId': typeof AppScansScanIdFindingIdRoute
+  '/app/scans/$scanId/': typeof AppScansScanIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -267,13 +281,14 @@ export interface FileRoutesByTo {
   '/api/scans/start': typeof ApiScansStartRoute
   '/app/repositories/$repoId': typeof AppRepositoriesRepoIdRoute
   '/app/reviews/$reviewId': typeof AppReviewsReviewIdRoute
-  '/app/scans/$scanId': typeof AppScansScanIdRoute
   '/auth/github/callback': typeof AuthGithubCallbackRoute
   '/auth/github/install': typeof AuthGithubInstallRoute
   '/auth/github/start': typeof AuthGithubStartRoute
   '/app/repositories': typeof AppRepositoriesIndexRoute
   '/app/reviews': typeof AppReviewsIndexRoute
   '/app/scans': typeof AppScansIndexRoute
+  '/app/scans/$scanId/$findingId': typeof AppScansScanIdFindingIdRoute
+  '/app/scans/$scanId': typeof AppScansScanIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -303,13 +318,15 @@ export interface FileRoutesById {
   '/api/scans/start': typeof ApiScansStartRoute
   '/app/repositories/$repoId': typeof AppRepositoriesRepoIdRoute
   '/app/reviews/$reviewId': typeof AppReviewsReviewIdRoute
-  '/app/scans/$scanId': typeof AppScansScanIdRoute
+  '/app/scans/$scanId': typeof AppScansScanIdRouteWithChildren
   '/auth/github/callback': typeof AuthGithubCallbackRoute
   '/auth/github/install': typeof AuthGithubInstallRoute
   '/auth/github/start': typeof AuthGithubStartRoute
   '/app/repositories/': typeof AppRepositoriesIndexRoute
   '/app/reviews/': typeof AppReviewsIndexRoute
   '/app/scans/': typeof AppScansIndexRoute
+  '/app/scans/$scanId/$findingId': typeof AppScansScanIdFindingIdRoute
+  '/app/scans/$scanId/': typeof AppScansScanIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -347,6 +364,8 @@ export interface FileRouteTypes {
     | '/app/repositories/'
     | '/app/reviews/'
     | '/app/scans/'
+    | '/app/scans/$scanId/$findingId'
+    | '/app/scans/$scanId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -371,13 +390,14 @@ export interface FileRouteTypes {
     | '/api/scans/start'
     | '/app/repositories/$repoId'
     | '/app/reviews/$reviewId'
-    | '/app/scans/$scanId'
     | '/auth/github/callback'
     | '/auth/github/install'
     | '/auth/github/start'
     | '/app/repositories'
     | '/app/reviews'
     | '/app/scans'
+    | '/app/scans/$scanId/$findingId'
+    | '/app/scans/$scanId'
   id:
     | '__root__'
     | '/'
@@ -413,6 +433,8 @@ export interface FileRouteTypes {
     | '/app/repositories/'
     | '/app/reviews/'
     | '/app/scans/'
+    | '/app/scans/$scanId/$findingId'
+    | '/app/scans/$scanId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -673,6 +695,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSetPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/scans/$scanId/': {
+      id: '/app/scans/$scanId/'
+      path: '/'
+      fullPath: '/app/scans/$scanId/'
+      preLoaderRoute: typeof AppScansScanIdIndexRouteImport
+      parentRoute: typeof AppScansScanIdRoute
+    }
+    '/app/scans/$scanId/$findingId': {
+      id: '/app/scans/$scanId/$findingId'
+      path: '/$findingId'
+      fullPath: '/app/scans/$scanId/$findingId'
+      preLoaderRoute: typeof AppScansScanIdFindingIdRouteImport
+      parentRoute: typeof AppScansScanIdRoute
+    }
   }
 }
 
@@ -704,13 +740,27 @@ const AppReviewsRouteWithChildren = AppReviewsRoute._addFileChildren(
   AppReviewsRouteChildren,
 )
 
+interface AppScansScanIdRouteChildren {
+  AppScansScanIdFindingIdRoute: typeof AppScansScanIdFindingIdRoute
+  AppScansScanIdIndexRoute: typeof AppScansScanIdIndexRoute
+}
+
+const AppScansScanIdRouteChildren: AppScansScanIdRouteChildren = {
+  AppScansScanIdFindingIdRoute: AppScansScanIdFindingIdRoute,
+  AppScansScanIdIndexRoute: AppScansScanIdIndexRoute,
+}
+
+const AppScansScanIdRouteWithChildren = AppScansScanIdRoute._addFileChildren(
+  AppScansScanIdRouteChildren,
+)
+
 interface AppScansRouteChildren {
-  AppScansScanIdRoute: typeof AppScansScanIdRoute
+  AppScansScanIdRoute: typeof AppScansScanIdRouteWithChildren
   AppScansIndexRoute: typeof AppScansIndexRoute
 }
 
 const AppScansRouteChildren: AppScansRouteChildren = {
-  AppScansScanIdRoute: AppScansScanIdRoute,
+  AppScansScanIdRoute: AppScansScanIdRouteWithChildren,
   AppScansIndexRoute: AppScansIndexRoute,
 }
 
@@ -763,12 +813,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
