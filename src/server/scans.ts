@@ -198,18 +198,12 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
     const { and, eq, db, codebaseScans, githubInstallations, repositories } =
       await loadDb()
     const [
-      { generateFixes },
-      {
-        commitFileToBranch,
-        createBranch,
-        fetchFileAtRef,
-        getBranchHeadSha,
-        openPullRequest,
-      },
+      { applyFindingsAsFixPr },
+      { getBranchHeadSha },
       { tracer },
       { SpanStatusCode },
     ] = await Promise.all([
-      import('./review-engine/autofix'),
+      import('./review-engine/open-fix-pr'),
       import('./review-engine/github'),
       import('./observability'),
       import('@opentelemetry/api'),
@@ -286,92 +280,42 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
           return { url: null, reason: `Could not read ${baseBranch}.` }
         }
 
-        // Group findings by file, then pull each file's content at the base.
-        const byPath = new Map<string, typeof findings>()
-        for (const finding of findings) {
-          if (!finding.filePath) continue
-          byPath.set(finding.filePath, [
-            ...(byPath.get(finding.filePath) ?? []),
-            finding,
-          ])
-        }
-
-        const files = []
-        for (const [path, fileFindings] of byPath) {
-          const file = await fetchFileAtRef({
-            installationId,
-            owner,
-            repo,
-            ref: headSha,
-            path,
-          })
-          if (file) {
-            files.push({ path, content: file.content, findings: fileFindings })
-          }
-        }
-        if (files.length === 0) {
-          return { url: null, reason: 'Affected files could not be read.' }
-        }
-
-        const fixes = await generateFixes({
-          repository: `${owner}/${repo}`,
-          files,
-        })
-        if (fixes.length === 0) {
-          return { url: null, reason: 'No applicable fixes were generated.' }
-        }
-
-        const branch = single
-          ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
-          : `jargons/fix-scan-${data.scanId.slice(0, 8)}`
-        await createBranch({
+        const result = await applyFindingsAsFixPr({
           installationId,
           owner,
           repo,
-          branch,
+          findings,
           fromSha: headSha,
-        })
-
-        for (const fix of fixes) {
-          const current = await fetchFileAtRef({
-            installationId,
-            owner,
-            repo,
-            ref: branch,
-            path: fix.path,
-          })
-          await commitFileToBranch({
-            installationId,
-            owner,
-            repo,
-            branch,
-            path: fix.path,
-            content: fix.content,
-            sha: current?.sha,
-            message: `fix: apply Jargons scan suggestions to ${fix.path}`,
-          })
-        }
-
-        const fileList = fixes.map((f) => `- \`${f.path}\``).join('\n')
-        const url = await openPullRequest({
-          installationId,
-          owner,
-          repo,
-          head: branch,
           base: baseBranch,
-          title: single
+          branch: single
+            ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
+            : `jargons/fix-scan-${data.scanId.slice(0, 8)}`,
+          commitMessage: (path) => `fix: apply Jargons scan suggestions to ${path}`,
+          prTitle: single
             ? `Jargons: fix "${single.title}"`
             : `Jargons: apply codebase scan fixes`,
-          body: single
-            ? `Automated fix for a Jargons finding: **${single.title}** (\`${single.filePath}\`).\n\nFiles changed:\n${fileList}`
-            : `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`,
+          prBody: (paths) => {
+            const fileList = paths.map((p) => `- \`${p}\``).join('\n')
+            return single
+              ? `Automated fix for a Jargons finding: **${single.title}** (\`${single.filePath}\`).\n\nFiles changed:\n${fileList}`
+              : `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`
+          },
         })
 
-        span.setAttribute('jargons.fix_pr_opened', Boolean(url))
+        span.setAttribute('jargons.fix_pr_opened', result.ok)
         span.setStatus({ code: SpanStatusCode.OK })
-        return url
-          ? { url }
-          : { url: null, reason: 'GitHub rejected the pull request.' }
+        if (result.ok) {
+          return { url: result.url }
+        }
+        return {
+          url: null,
+          reason: {
+            no_paths: 'This scan has no findings to fix.',
+            no_files: 'Affected files could not be read.',
+            no_fixes: 'No applicable fixes were generated.',
+            pr_rejected: 'GitHub rejected the pull request.',
+          }[result.reason],
+        }
       } catch (error) {
         span.setStatus({
           code: SpanStatusCode.ERROR,
