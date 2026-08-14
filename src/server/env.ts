@@ -12,7 +12,6 @@ type RequiredEnvKey =
 type OptionalEnvKey =
   | 'APP_URL'
   | 'NODE_ENV'
-  | 'ADMIN_USERNAMES'
   | 'LLM_PROVIDER'
   | 'LLM_MODEL'
   | 'GEMINI_API_KEY'
