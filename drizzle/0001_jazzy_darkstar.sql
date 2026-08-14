@@ -7,3 +7,6 @@ CREATE TABLE "page_views" (
 );
 --> statement-breakpoint
 CREATE INDEX "page_views_created_at_idx" ON "page_views" USING btree ("created_at");
+CREATE INDEX "page_views_path_idx" ON "page_views" USING btree ("path");
+CREATE INDEX "page_views_country_idx" ON "page_views" USING btree ("country");
+CREATE INDEX "page_views_referrer_idx" ON "page_views" USING btree ("referrer");
