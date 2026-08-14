@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -53,6 +54,9 @@ export const users = pgTable(
     name: text('name'),
     email: text('email'),
     avatarUrl: text('avatar_url'),
+    // Operator/admin access to the /admin dashboard. The owner is always an
+    // admin by GitHub id; this grants access to additional accounts.
+    isAdmin: boolean('is_admin').notNull().default(false),
     // Set the first time the user finishes or skips onboarding; null means the
     // guided onboarding has not been dismissed yet.
     onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
@@ -238,6 +242,26 @@ export const findings = pgTable('findings', {
     .notNull()
     .defaultNow(),
 })
+
+// Lightweight, privacy-light page-view tracking for the public marketing pages
+// (no PII — just the path, the visitor's country from the edge geo header, and
+// the referrer). Feeds the admin analytics dashboard.
+export const pageViews = pgTable(
+  'page_views',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    path: text('path').notNull(),
+    // ISO 3166-1 alpha-2 country code from the edge geo header; null if unknown.
+    country: text('country'),
+    referrer: text('referrer'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    createdAtIdx: index('page_views_created_at_idx').on(table.createdAt),
+  }),
+)
 
 export const codebaseScans = pgTable('codebase_scans', {
   id: uuid('id').primaryKey().defaultRandom(),
