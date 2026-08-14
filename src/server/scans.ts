@@ -176,7 +176,7 @@ export type OpenScanFixPrResult = { url: string | null; reason?: string }
 // fixes, opened into the repository's default branch. Reuses the review
 // engine's LLM autofix + GitHub commit/PR helpers.
 export const openScanFixPr = createServerFn({ method: 'POST' })
-  .validator((input: { scanId: string }) => input)
+  .validator((input: { scanId: string; findingIndex?: number }) => input)
   .handler(async ({ data }): Promise<OpenScanFixPrResult> => {
     const currentUser = await getCurrentUserFromCookie()
 
@@ -249,10 +249,21 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
       return { url: null, reason: 'No GitHub installation connected.' }
     }
 
-    const findings = summaryToFindings(scan.summary)
-    if (findings.length === 0) {
+    const allFindings = summaryToFindings(scan.summary)
+    if (allFindings.length === 0) {
       return { url: null, reason: 'This scan has no findings to fix.' }
     }
+
+    // With a findingIndex, open a fix PR for just that one finding; otherwise
+    // fix them all (the legacy bulk path).
+    const single =
+      typeof data.findingIndex === 'number'
+        ? allFindings[data.findingIndex]
+        : null
+    if (typeof data.findingIndex === 'number' && !single) {
+      return { url: null, reason: 'Finding not found.' }
+    }
+    const findings = single ? [single] : allFindings
 
     const owner = scan.owner
     const repo = scan.name
@@ -310,7 +321,9 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
           return { url: null, reason: 'No applicable fixes were generated.' }
         }
 
-        const branch = `jargons/fix-scan-${data.scanId.slice(0, 8)}`
+        const branch = single
+          ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
+          : `jargons/fix-scan-${data.scanId.slice(0, 8)}`
         await createBranch({
           installationId,
           owner,
@@ -346,8 +359,12 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
           repo,
           head: branch,
           base: baseBranch,
-          title: `Jargons: apply codebase scan fixes`,
-          body: `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`,
+          title: single
+            ? `Jargons: fix "${single.title}"`
+            : `Jargons: apply codebase scan fixes`,
+          body: single
+            ? `Automated fix for a Jargons finding: **${single.title}** (\`${single.filePath}\`).\n\nFiles changed:\n${fileList}`
+            : `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`,
         })
 
         span.setAttribute('jargons.fix_pr_opened', Boolean(url))
