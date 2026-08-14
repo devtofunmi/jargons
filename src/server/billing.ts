@@ -41,17 +41,19 @@ export async function getWorkspaceBilling(
       plan: workspaces.plan,
       runsUsed: workspaces.runsUsed,
       runsPeriodStart: workspaces.runsPeriodStart,
+      bonusRuns: workspaces.bonusRuns,
     })
     .from(workspaces)
     .where(eq(workspaces.id, workspaceId))
     .limit(1)
 
   const plan = rows[0]?.plan === 'pro' ? 'pro' : 'free'
-  // Runs reset each calendar month; a stale period reads as zero used.
-  const runsUsed = isStalePeriod(rows[0]?.runsPeriodStart ?? null, new Date())
-    ? 0
-    : (rows[0]?.runsUsed ?? 0)
-  const limit = plan === 'pro' ? PRO_RUN_LIMIT : FREE_RUN_LIMIT
+  // Runs reset each calendar month; a stale period reads as zero used, and any
+  // operator-granted bonus is spent (it never carries into a new window).
+  const stale = isStalePeriod(rows[0]?.runsPeriodStart ?? null, new Date())
+  const runsUsed = stale ? 0 : (rows[0]?.runsUsed ?? 0)
+  const bonusRuns = stale ? 0 : (rows[0]?.bonusRuns ?? 0)
+  const limit = (plan === 'pro' ? PRO_RUN_LIMIT : FREE_RUN_LIMIT) + bonusRuns
 
   return {
     plan,
@@ -77,6 +79,30 @@ export async function incrementWorkspaceRuns(
     .set({
       runsUsed: sql`case when ${isNewPeriod} then 1 else ${workspaces.runsUsed} + 1 end`,
       runsPeriodStart: sql`case when ${isNewPeriod} then now() else ${workspaces.runsPeriodStart} end`,
+      // A new window wipes any leftover operator-granted bonus runs.
+      bonusRuns: sql`case when ${isNewPeriod} then 0 else ${workspaces.bonusRuns} end`,
+    })
+    .where(eq(workspaces.id, workspaceId))
+}
+
+// Operator grant: add one-time bonus runs to a workspace's current window. If
+// the stored window is stale (or unset), start a fresh one — resetting runsUsed
+// and seeding the bonus — so the grant lands in the window billing actually
+// reads, instead of a stale one the next run would immediately wipe.
+export async function grantWorkspaceRuns(
+  workspaceId: string,
+  runs: number,
+): Promise<void> {
+  const { eq, sql, db, workspaces } = await loadDb()
+
+  const isNewPeriod = sql`(${workspaces.runsPeriodStart} is null or date_trunc('month', ${workspaces.runsPeriodStart}) < date_trunc('month', now()))`
+
+  await db
+    .update(workspaces)
+    .set({
+      runsUsed: sql`case when ${isNewPeriod} then 0 else ${workspaces.runsUsed} end`,
+      runsPeriodStart: sql`case when ${isNewPeriod} then now() else ${workspaces.runsPeriodStart} end`,
+      bonusRuns: sql`case when ${isNewPeriod} then ${runs} else ${workspaces.bonusRuns} + ${runs} end`,
     })
     .where(eq(workspaces.id, workspaceId))
 }
