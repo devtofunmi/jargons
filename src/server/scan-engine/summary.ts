@@ -2,13 +2,9 @@
 // from the DB) into per-severity counts for display. No I/O — unit-tested in
 // summary.test.ts.
 
-export type ScanFindingCounts = {
-  critical: number
-  high: number
-  medium: number
-  low: number
-  note: number
-}
+import type { SeverityCounts } from '../../lib/severity'
+
+export type ScanFindingCounts = SeverityCounts
 
 // The opaque JSON shape a scan stores in `summary`. Both count and finding
 // readers coerce from it defensively.
