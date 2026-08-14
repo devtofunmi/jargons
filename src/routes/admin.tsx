@@ -50,7 +50,7 @@ function AdminPage() {
   return (
     <div className="min-h-screen bg-[#070708] text-white">
       <div className="flex flex-col lg:flex-row">
-        <aside className="shrink-0 border-b border-white/[0.06] px-5 py-6 sm:px-6 lg:sticky lg:top-0 lg:h-screen lg:w-40 lg:border-b-0 lg:border-r">
+        <aside className="shrink-0 border-b border-white/[0.06] px-5 py-6 sm:px-6 lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between lg:block">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-amber-300">
