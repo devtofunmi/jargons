@@ -1,39 +1,41 @@
 // Operator/admin surface: platform-wide analytics and light user management.
 // This exposes EVERY workspace's data, so access is gated server-side on every
-// call (never trust the UI). Admins are named in the ADMIN_USERNAMES env var
-// (comma-separated GitHub usernames).
+// call (never trust the UI). Admin access is granted via the users.is_admin
+// flag on a user's own row — never a mutable username or a hardcoded id.
 
 import { createServerFn } from '@tanstack/react-start'
 
 import { loadDb } from '../db/load'
 import { PRO_PRICE_USD } from '../lib/plans'
-import { getOptionalEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
 import type { CurrentUser } from './github-auth'
 
-export function isAdminUsername(username: string): boolean {
-  const allow = getOptionalEnv('ADMIN_USERNAMES', '')
-    .split(',')
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean)
-  return allow.includes(username.toLowerCase())
+/** True if the signed-in user has the is_admin flag set on their row. */
+export async function isAdmin(user: CurrentUser): Promise<boolean> {
+  const { eq, db, users } = await loadDb()
+  const rows = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1)
+  return rows.length > 0 && rows[0].isAdmin
 }
 
 /** Throws unless the signed-in user is an admin. Returns the admin user. */
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await getCurrentUserFromCookie()
-  if (!user || !isAdminUsername(user.username)) {
+  if (!user || !(await isAdmin(user))) {
     throw new Error('forbidden')
   }
   return user
 }
 
 // Used by the route's beforeLoad to gate access (returns null instead of
-// throwing so the route can redirect cleanly). The env check stays server-side.
+// throwing so the route can redirect cleanly).
 export const getAdminContext = createServerFn({ method: 'GET' }).handler(
   async (): Promise<{ username: string } | null> => {
     const user = await getCurrentUserFromCookie()
-    if (!user || !isAdminUsername(user.username)) {
+    if (!user || !(await isAdmin(user))) {
       return null
     }
     return { username: user.username }
