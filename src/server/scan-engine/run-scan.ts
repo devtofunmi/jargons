@@ -1,7 +1,7 @@
 // Orchestrates one codebase scan under a root `scan.run` span. Invoked
 // fire-and-forget, so it never throws — failures are recorded and persisted.
 
-import { SpanStatusCode, context, trace } from '@opentelemetry/api'
+import { SpanStatusCode } from '@opentelemetry/api'
 
 import { loadDb } from '../../db/load'
 import {
@@ -15,6 +15,7 @@ import {
   scanFindingsTotal,
   scansTotal,
   tracer,
+  withSpan,
 } from '../observability'
 import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
 import { fetchFileContent, fetchRepoTree } from './github'
@@ -153,22 +154,6 @@ async function collectFiles(
   }
 
   return files
-}
-
-async function withSpan<T>(name: string, fn: () => Promise<T>): Promise<T> {
-  const span = tracer.startSpan(name)
-  try {
-    return await context.with(trace.setSpan(context.active(), span), fn)
-  } catch (error) {
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: error instanceof Error ? error.message : name,
-    })
-    span.recordException(error as Error)
-    throw error
-  } finally {
-    span.end()
-  }
 }
 
 function recordFindingMetrics(
