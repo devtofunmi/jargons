@@ -2,6 +2,7 @@
 // post the review back as a PR review comment. Both use a short-lived
 // installation access token minted by the GitHub App helpers.
 
+import { severityRank } from '../../lib/severity'
 import { getEnv } from '../env'
 import { createInstallationAccessToken, githubHeaders } from '../github-app'
 import type { LlmFinding, ReviewSeverity } from './llm'
@@ -307,14 +308,6 @@ const SEVERITY_LABEL: Record<ReviewSeverity, string> = {
   note: '⚪ Note',
 }
 
-const SEVERITY_ORDER: ReviewSeverity[] = [
-  'critical',
-  'high',
-  'medium',
-  'low',
-  'note',
-]
-
 function renderReviewBody(
   findings: LlmFinding[],
   truncated: boolean,
@@ -336,8 +329,7 @@ function renderReviewBody(
   }
 
   const sorted = [...findings].sort(
-    (a, b) =>
-      SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
+    (a, b) => severityRank(a.severity) - severityRank(b.severity),
   )
 
   const lines = [
