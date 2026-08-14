@@ -80,10 +80,29 @@ const components: Components = {
   },
 }
 
-export function MarkdownBody({ children }: { children: string }) {
+// Link rendered as a non-anchor span — used when the markdown sits inside a
+// clickable card (an <a>), where a nested <a> would be invalid HTML.
+const spanLink: Components['a'] = ({ node: _n, href: _href, ...props }) => (
+  <span className="text-cyan-300 underline underline-offset-2" {...props} />
+)
+
+export function MarkdownBody({
+  children,
+  className,
+  plainLinks = false,
+}: {
+  children: string
+  className?: string
+  // When true, markdown links render as plain spans (no <a>), so the body can
+  // live inside a link-wrapped card without nesting anchors.
+  plainLinks?: boolean
+}) {
+  const map = plainLinks ? { ...components, a: spanLink } : components
   return (
-    <Markdown remarkPlugins={[remarkGfm]} components={components}>
-      {children}
-    </Markdown>
+    <div className={className}>
+      <Markdown remarkPlugins={[remarkGfm]} components={map}>
+        {children}
+      </Markdown>
+    </div>
   )
 }

@@ -8,10 +8,12 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+import { FindingCard } from '../components/issues/finding-card'
+import { MarkdownBody } from '../components/issues/markdown-body'
 import { DetailPageSkeleton } from '../components/skeletons'
 import { timeAgo } from '../lib/format'
 import { getReviewRun } from '../server/reviews'
-import type { ReviewFindingItem, ReviewRunDetail } from '../server/reviews'
+import type { ReviewRunDetail } from '../server/reviews'
 
 export const Route = createFileRoute('/app/reviews/$reviewId')({
   component: ReviewDetailPage,
@@ -26,14 +28,6 @@ export const Route = createFileRoute('/app/reviews/$reviewId')({
     return review
   },
 })
-
-const severityStyles: Record<ReviewFindingItem['severity'], string> = {
-  critical: 'border-red-300/25 bg-red-300/[0.08] text-red-200',
-  high: 'border-red-300/20 bg-red-300/[0.06] text-red-300',
-  medium: 'border-amber-300/20 bg-amber-300/[0.06] text-amber-300',
-  low: 'border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-300',
-  note: 'border-white/[0.1] bg-white/[0.04] text-zinc-400',
-}
 
 function ReviewDetailPage() {
   const review = Route.useLoaderData()
@@ -79,38 +73,26 @@ function ReviewDetailPage() {
         <div className="mt-6 grid gap-3 lg:grid-cols-2">
           {review.findings.length > 0 ? (
             review.findings.map((finding) => (
-              <div
+              <FindingCard
                 key={finding.id}
-                className="rounded-2xl border border-white/[0.07] bg-[#09090b] p-5"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-semibold text-zinc-100">
-                    {finding.title}
-                  </h3>
-                  <span
-                    className={`rounded-full border px-2 py-1 font-mono text-[8px] uppercase ${severityStyles[finding.severity]}`}
-                  >
-                    {finding.severity}
-                  </span>
-                </div>
-                <p className="mt-3 font-mono text-[10px] text-zinc-600">
-                  {finding.filePath}
-                  {finding.lineNumber ? `:${finding.lineNumber}` : ''}
-                </p>
-                <p className="mt-3 text-sm leading-6 text-zinc-500">
-                  {finding.description}
-                </p>
-                {finding.suggestion ? (
-                  <div className="mt-4 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.035] p-4">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-emerald-300">
-                      suggested fix
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-400">
-                      {finding.suggestion}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
+                title={finding.title}
+                description={finding.description}
+                filePath={finding.filePath}
+                lineNumber={finding.lineNumber}
+                severity={finding.severity}
+                footer={
+                  finding.suggestion ? (
+                    <div className="mt-4 rounded-xl border border-emerald-300/15 bg-emerald-300/[0.035] p-4">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-emerald-300">
+                        suggested fix
+                      </p>
+                      <MarkdownBody className="mt-2 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                        {finding.suggestion}
+                      </MarkdownBody>
+                    </div>
+                  ) : null
+                }
+              />
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-white/[0.1] bg-[#09090b] p-5">

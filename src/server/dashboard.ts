@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
+import type { Severity } from '../lib/severity'
 import { loadDb } from '../db/load'
 import { getCurrentUserFromCookie } from './github-auth'
 import type { ReviewRunListItem } from './reviews'
@@ -20,6 +21,7 @@ export type DashboardData = {
   priorityFindings: Array<{
     id: string
     reviewId: string
+    severity: Severity
     title: string
     description: string
     filePath: string
@@ -127,6 +129,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(
         .select({
           id: findings.id,
           reviewId: findings.reviewRunId,
+          severity: findings.severity,
           title: findings.title,
           description: findings.description,
           filePath: findings.filePath,

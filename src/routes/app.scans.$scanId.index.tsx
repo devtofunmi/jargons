@@ -2,7 +2,6 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router'
 import {
   AlertTriangle,
   ArrowLeft,
-  ArrowRight,
   Check,
   Clock3,
   FileCode,
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { FindingCard } from '../components/issues/finding-card'
 import { DetailPageSkeleton } from '../components/skeletons'
 import { timeAgo } from '../lib/format'
 import { getCodebaseScan } from '../server/scans'
@@ -145,29 +145,16 @@ function ScanDetailPage() {
                   key={`${finding.filePath}-${finding.lineNumber ?? 'x'}-${index}`}
                   to="/app/scans/$scanId/$findingId"
                   params={{ scanId: scan.id, findingId: String(index) }}
-                  className="group block rounded-2xl border border-white/[0.07] bg-[#09090b] p-5 transition-colors hover:bg-white/[0.03]"
+                  className="block"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-semibold text-zinc-100">
-                        {finding.title}
-                      </h3>
-                      <span
-                        className={`rounded-full border px-2 py-1 font-mono text-[8px] uppercase ${severityStyles[finding.severity]}`}
-                      >
-                        {finding.severity}
-                      </span>
-                    </div>
-                    <ArrowRight className="size-4 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                  <p className="mt-3 flex items-center gap-1.5 font-mono text-[10px] text-zinc-600">
-                    <FileCode className="size-3" />
-                    {finding.filePath}
-                    {finding.lineNumber ? `:${finding.lineNumber}` : ''}
-                  </p>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-zinc-500">
-                    {finding.description}
-                  </p>
+                  <FindingCard
+                    title={finding.title}
+                    description={finding.description}
+                    filePath={finding.filePath}
+                    lineNumber={finding.lineNumber}
+                    severity={finding.severity}
+                    interactive
+                  />
                 </Link>
               ))
             ) : (

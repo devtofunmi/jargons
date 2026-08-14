@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+import { FindingCard } from '../components/issues/finding-card'
 import { AppPageSkeleton } from '../components/skeletons'
 import { ThroughputChart } from '../components/throughput-chart'
 import { UpgradeButton } from '../components/upgrade-button'
@@ -222,21 +223,16 @@ function Dashboard() {
                 key={finding.id}
                 to="/app/reviews/$reviewId"
                 params={{ reviewId: finding.reviewId }}
-                className="group block rounded-2xl border border-white/[0.07] bg-[#09090b] p-4 transition-colors hover:bg-white/[0.025]"
+                className="block"
               >
-                <p className="font-mono text-[10px] text-zinc-600">
-                  {finding.filePath}
-                  {finding.lineNumber ? `:${finding.lineNumber}` : ''}
-                </p>
-                <div className="mt-3 flex items-start justify-between gap-3">
-                  <h3 className="text-sm font-semibold text-zinc-200">
-                    {finding.title}
-                  </h3>
-                  <ArrowRight className="mt-0.5 size-4 shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-300" />
-                </div>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  {finding.description}
-                </p>
+                <FindingCard
+                  title={finding.title}
+                  description={finding.description}
+                  filePath={finding.filePath}
+                  lineNumber={finding.lineNumber}
+                  severity={finding.severity}
+                  interactive
+                />
               </Link>
             ))
           ) : (
