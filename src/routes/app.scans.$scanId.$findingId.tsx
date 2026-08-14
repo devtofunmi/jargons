@@ -69,7 +69,7 @@ function ScanFindingPage() {
   }
 
   return (
-    <section className="mx-auto max-w-3xl">
+    <section className="mx-auto max-w-7xl">
       <Link
         to="/app/scans/$scanId"
         params={{ scanId }}
