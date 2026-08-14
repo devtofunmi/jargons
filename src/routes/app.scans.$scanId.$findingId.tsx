@@ -3,10 +3,12 @@ import { ArrowLeft } from 'lucide-react'
 
 import { IssueDetail } from '../components/issues/issue-detail'
 import type { Issue } from '../components/issues/issue-types'
+import { DetailPageSkeleton } from '../components/skeletons'
 import { getBilling } from '../server/billing'
 import { getCodebaseScan, openScanFixPr } from '../server/scans'
 
 export const Route = createFileRoute('/app/scans/$scanId/$findingId')({
+  pendingComponent: DetailPageSkeleton,
   loader: async ({ params }) => {
     const [scan, billing] = await Promise.all([
       getCodebaseScan({ data: { scanId: params.scanId } }),
