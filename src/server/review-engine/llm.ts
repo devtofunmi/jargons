@@ -4,12 +4,14 @@
 
 import { SpanStatusCode } from '@opentelemetry/api'
 
+import { SEVERITIES } from '../../lib/severity'
+import type { Severity } from '../../lib/severity'
 import { getOptionalEnv } from '../env'
 import { callGemini } from '../llm/gemini'
 import { tracer } from '../observability'
-import { parseFindings, SEVERITIES } from './findings'
+import { parseFindings } from './findings'
 
-export type ReviewSeverity = 'critical' | 'high' | 'medium' | 'low' | 'note'
+export type ReviewSeverity = Severity
 
 export type LlmFinding = {
   severity: ReviewSeverity
