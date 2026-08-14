@@ -38,48 +38,9 @@ export type CurrentUser = {
   } | null
 }
 
-export const getGitHubAuthUrl = createServerFn({ method: 'GET' }).handler(
-  () => {
-    const { state, url } = createGitHubAuthorizeUrl()
-
-    return {
-      url,
-      state,
-      callbackUrl: new URL(
-        '/auth/github/callback',
-        getOptionalEnv('APP_URL', 'http://localhost:3000'),
-      ).toString(),
-    }
-  },
-)
-
 export function getGitHubAuthorizeUrl() {
   return createGitHubAuthorizeUrl().url
 }
-
-export const completeGitHubAuth = createServerFn({ method: 'POST' })
-  .validator((input: { code: string }) => input)
-  .handler(async ({ data }) => completeGitHubAuthWithCode(data.code))
-
-export const completeGitHubAuthForCallback = createServerFn({ method: 'POST' })
-  .validator((input: { code: string }) => input)
-  .handler(async ({ data }) => {
-    try {
-      await completeGitHubAuthWithCode(data.code)
-
-      return {
-        ok: true,
-        error: null,
-      }
-    } catch (error) {
-      console.error('GitHub auth callback failed', error)
-
-      return {
-        ok: false,
-        error: getAuthErrorMessage(error),
-      }
-    }
-  })
 
 export async function completeGitHubAuthWithCode(code: string) {
   const { db, sessions, users, workspaces } = await loadDb()
@@ -331,24 +292,6 @@ export async function exchangeGitHubCode(code: string) {
   }
 
   return token.access_token
-}
-
-function getAuthErrorMessage(error: unknown): string {
-  // Never return the raw error message: it can wrap a DB error whose text
-  // contains SQL and params (e.g. the user's email). Callers log the real
-  // error; users get a safe, generic message.
-  const text =
-    error instanceof Error ? `${error.name} ${error.message}`.toLowerCase() : ''
-  const looksTransient =
-    text.includes('failed query') ||
-    text.includes('timeout') ||
-    text.includes('connect') ||
-    text.includes('connection') ||
-    text.includes('fetch failed')
-
-  return looksTransient
-    ? 'We could not reach our systems. Please try again in a moment.'
-    : 'We could not complete GitHub sign in. Please try again.'
 }
 
 export async function getGitHubUser(accessToken: string) {
