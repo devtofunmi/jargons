@@ -23,6 +23,9 @@ BLOG-FINAL.md
 brand/architecture.svg
 brand/architecture.png
 
+# Flyer / poster working assets (social posts, not part of the app)
+brand/flyer/
+
 # SigNoz / observability — kept locally, not part of the public product
 pours/
 signoz/
