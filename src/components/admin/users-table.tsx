@@ -5,29 +5,35 @@ import { useState } from 'react'
 import { timeAgo } from '../../lib/format'
 import type { AdminUserRow } from '../../server/admin'
 
+// Sticky header cells carry the card's own background so rows don't show
+// through, plus an inset bottom rule — a `border-b` on the header row doesn't
+// stay put under `border-collapse` once the body scrolls.
+const TH =
+  'sticky top-0 z-10 bg-[#0d0d10] py-2 font-normal shadow-[inset_0_-1px_0_rgba(255,255,255,0.07)]'
+
 // Every user with their workspace plan + usage, and an inline plan toggle.
 export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
   return (
     <article className="app-card mt-6 p-5 sm:p-6">
       <div className="flex items-center gap-2">
-        <UsersIcon className="size-4 text-cyan-300" />
+        <UsersIcon className="size-4 text-violet-300" />
         <h2 className="text-lg font-medium tracking-[-0.03em]">
           Users ({users.length})
         </h2>
       </div>
 
-      <div className="mt-5 overflow-x-auto [scrollbar-width:thin]">
+      <div className="custom-scrollbar mt-5 max-h-[560px] overflow-auto">
         <table className="w-full min-w-[760px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-white/[0.07] text-left font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600">
-              <th className="py-2 pr-4 font-normal">User</th>
-              <th className="py-2 pr-4 font-normal">Plan</th>
-              <th className="py-2 pr-4 text-right font-normal">Runs</th>
-              <th className="py-2 pr-4 text-right font-normal">Repos</th>
-              <th className="py-2 pr-4 text-right font-normal">Reviews</th>
-              <th className="py-2 pr-4 text-right font-normal">Scans</th>
-              <th className="py-2 pr-4 font-normal">Joined</th>
-              <th className="py-2 font-normal" />
+            <tr className="text-left font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600">
+              <th className={`${TH} pr-4`}>User</th>
+              <th className={`${TH} pr-4`}>Plan</th>
+              <th className={`${TH} pr-4 text-right`}>Runs</th>
+              <th className={`${TH} pr-4 text-right`}>Repos</th>
+              <th className={`${TH} pr-4 text-right`}>Reviews</th>
+              <th className={`${TH} pr-4 text-right`}>Scans</th>
+              <th className={`${TH} pr-4`}>Joined</th>
+              <th className={TH} />
             </tr>
           </thead>
           <tbody>

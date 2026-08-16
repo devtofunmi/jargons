@@ -41,8 +41,8 @@ export function AdminViewsChart({
             >
               <defs>
                 <linearGradient id="grad-views" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="#67e8f9" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#67e8f9" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
@@ -72,7 +72,7 @@ export function AdminViewsChart({
                 type="monotone"
                 dataKey="count"
                 name="views"
-                stroke="#22d3ee"
+                stroke="#67e8f9"
                 strokeWidth={2}
                 fill="url(#grad-views)"
                 dot={false}

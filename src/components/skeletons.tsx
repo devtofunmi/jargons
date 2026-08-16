@@ -113,6 +113,49 @@ export function AppShellSkeleton() {
   )
 }
 
+// Mirrors the /admin shell: operator sidebar + the overview section, which is
+// the default tab the loader resolves into.
+export function AdminSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#0a0a0b]">
+      <div className="flex flex-col lg:flex-row">
+        <aside className="shrink-0 border-b border-white/[0.07] bg-[#070708] px-5 py-6 sm:px-6 lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
+          <div className="flex items-center justify-between lg:block">
+            <div>
+              <Bone className="h-2.5 w-16" />
+              <Bone className="mt-2.5 h-6 w-20" />
+            </div>
+            <Bone className="h-4 w-12 lg:hidden" />
+          </div>
+
+          <nav className="mt-5 flex gap-1 lg:mt-8 lg:flex-col">
+            {[0, 1, 2].map((index) => (
+              <Bone key={index} className="h-11 w-28 shrink-0 lg:w-full" />
+            ))}
+          </nav>
+
+          <Bone className="mt-8 hidden h-4 w-28 lg:block" />
+        </aside>
+
+        <main className="min-w-0 flex-1 px-5 py-8 sm:px-8">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">
+            {[0, 1, 2, 3, 4, 5, 6].map((index) => (
+              <Bone key={index} className="h-28 rounded-[22px]" />
+            ))}
+          </div>
+
+          <Bone className="mt-6 h-96 rounded-[22px]" />
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <Bone className="h-72 rounded-[22px]" />
+            <Bone className="h-72 rounded-[22px]" />
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
+
 export function FullPageLoader() {
   return (
     <main className="grid min-h-screen place-items-center bg-[#080809]">
