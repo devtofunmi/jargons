@@ -8,6 +8,7 @@ import { AdminStats } from '../components/admin/stats'
 import { AdminTrendsChart } from '../components/admin/trends-chart'
 import { AdminUsersTable } from '../components/admin/users-table'
 import { AdminViewsChart } from '../components/admin/views-chart'
+import { AdminSkeleton } from '../components/skeletons'
 import {
   getAdminContext,
   getAdminOverview,
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/admin')({
   head: () => ({
     meta: [{ name: 'robots', content: 'noindex, nofollow' }],
   }),
+  pendingComponent: AdminSkeleton,
   beforeLoad: async () => {
     const ctx = await getAdminContext()
     if (!ctx) {
@@ -48,9 +50,9 @@ function AdminPage() {
   const [section, setSection] = useState<SectionId>('overview')
 
   return (
-    <div className="min-h-screen bg-[#070708] text-white">
+    <div className="min-h-screen bg-[#0a0a0b] text-white">
       <div className="flex flex-col lg:flex-row">
-        <aside className="shrink-0 border-b border-white/[0.06] px-5 py-6 sm:px-6 lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
+        <aside className="shrink-0 border-b border-white/[0.07] bg-[#070708] px-5 py-6 sm:px-6 lg:sticky lg:top-0 lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between lg:block">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-amber-300">
@@ -80,10 +82,8 @@ function AdminPage() {
                   type="button"
                   onClick={() => setSection(item.id)}
                   aria-current={active ? 'page' : undefined}
-                  className={`inline-flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    active
-                      ? 'bg-white/[0.07] text-white'
-                      : 'text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-300'
+                  className={`app-nav-link shrink-0 ${
+                    active ? 'app-nav-link-active' : ''
                   }`}
                 >
                   <Icon className="size-4" />
