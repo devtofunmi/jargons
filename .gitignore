@@ -15,10 +15,6 @@ todos.json
 # Claude Code local tooling (settings, isolated worktrees)
 .claude/
 
-# Hackathon submission working drafts (private)
-SUBMISSION-DRAFTS.md
-BLOG-FINAL.md
-
 # Blog architecture diagram (working asset, not part of the app)
 brand/architecture.svg
 brand/architecture.png
