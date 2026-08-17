@@ -4,19 +4,21 @@ import { useEffect, useState } from 'react'
 import { OwlMark } from '../owl-mark'
 
 // Per-issue "open a fix PR" button. The caller supplies the action, so this
-// stays reusable. On success it links to the opened PR; on failure it just
-// returns to idle so the user can retry (no error banner). While the PR is
-// being opened it shows a full-screen overlay animation.
+// stays reusable. On success it links to the opened PR; on failure it shows the
+// reason and returns to idle so the user can retry. While the PR is being
+// opened it shows a full-screen overlay animation.
 export function IssueFixPrButton({
   onOpen,
 }: {
-  onOpen: () => Promise<{ url: string | null }>
+  onOpen: () => Promise<{ url: string | null; reason?: string }>
 }) {
   const [state, setState] = useState<'idle' | 'opening' | 'done'>('idle')
   const [url, setUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function open() {
     setState('opening')
+    setError(null)
     try {
       const result = await onOpen()
       if (result.url) {
@@ -24,10 +26,14 @@ export function IssueFixPrButton({
         setState('done')
         return
       }
+      // A null url with no reason means the caller already handled it by
+      // navigating away (e.g. to /pricing when the plan is used up), so there
+      // is nothing to report here.
+      setError(result.reason ?? null)
     } catch {
-      // fall through
+      setError('Could not open the fix PR. Please try again.')
     }
-    // On failure just return to idle so the user can retry — no error banner.
+    // Back to idle either way, so the button stays available for a retry.
     setState('idle')
   }
 
@@ -60,6 +66,11 @@ export function IssueFixPrButton({
           </>
         )}
       </button>
+      {error ? (
+        <p className="mt-3 font-mono text-xs text-red-300" role="alert">
+          {error}
+        </p>
+      ) : null}
       {state === 'opening' ? <FixPrOverlay /> : null}
     </>
   )
