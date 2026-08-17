@@ -16,7 +16,7 @@ type PullRequestEvent = {
     user: { login: string } | null
     // head.repo is null when the fork has since been deleted.
     head: { sha: string; ref: string; repo: { full_name: string } | null }
-    base: { sha: string; repo: { full_name: string } }
+    base: { sha: string }
   }
   repository: {
     id: number
@@ -252,7 +252,14 @@ export async function handlePullRequestEvent(
       // A fork's head branch doesn't exist in the base repo, so the fix-PR
       // pipeline cannot branch from it or open a PR against it. The review
       // itself works fine, so the run proceeds and only the fix PR is skipped.
-      isFork: pr.head.repo?.full_name !== pr.base.repo.full_name,
+      //
+      // Compared against `repository` (the base repo, always present on the
+      // event) rather than `base.repo`, so this never depends on an extra
+      // nullable field. head.repo IS null when the fork has been deleted, and
+      // that correctly reads as a fork.
+      isFork:
+        pr.head.repo?.full_name !==
+        `${payload.repository.owner.login}/${payload.repository.name}`,
     }),
   )
 
