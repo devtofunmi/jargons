@@ -26,14 +26,6 @@ brand/architecture.png
 # Flyer / poster working assets (social posts, not part of the app)
 brand/flyer/
 
-# SigNoz / observability — kept locally, not part of the public product
-pours/
-signoz/
-OBSERVABILITY.md
-casting.yaml
-casting.yaml.lock
-src/routes/app.health.tsx
-
 # Local webhook/review pipeline test harness (hardcoded IDs, hits localhost)
 _rt.mjs
 
