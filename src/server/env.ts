@@ -15,8 +15,6 @@ type OptionalEnvKey =
   | 'LLM_PROVIDER'
   | 'LLM_MODEL'
   | 'GEMINI_API_KEY'
-  | 'SIGNOZ_API_KEY'
-  | 'SIGNOZ_URL'
   | 'BACHS_CHECKOUT_URL'
   | 'BACHS_WEBHOOK_SECRET'
   | 'BACHS_API_KEY'
