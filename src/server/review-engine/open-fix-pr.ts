@@ -4,9 +4,6 @@
 // Any failure (fork with no write access, LLM error, etc.) returns null — the
 // review itself is never blocked.
 
-import { SpanStatusCode } from '@opentelemetry/api'
-
-import { tracer } from '../observability'
 import { generateFixes } from './autofix'
 import type { FileToFix } from './autofix'
 import {
@@ -30,36 +27,25 @@ export async function openFixPr(
   input: OpenFixPrInput,
   findings: LlmFinding[],
 ): Promise<string | null> {
-  return tracer.startActiveSpan('github.open_fix_pr', async (span) => {
-    try {
-      const result = await applyFindingsAsFixPr({
-        installationId: input.installationId,
-        owner: input.owner,
-        repo: input.repo,
-        findings,
-        fromSha: input.headSha,
-        base: input.headRef,
-        branch: `jargons/fix-pr-${input.prNumber}-${input.headSha.slice(0, 7)}`,
-        commitMessage: (path) =>
-          `fix: apply Jargons review suggestions to ${path}`,
-        prTitle: `Jargons: apply suggested fixes for #${input.prNumber}`,
-        prBody: (paths) => fixBody(paths, input.prNumber),
-      })
+  try {
+    const result = await applyFindingsAsFixPr({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      findings,
+      fromSha: input.headSha,
+      base: input.headRef,
+      branch: `jargons/fix-pr-${input.prNumber}-${input.headSha.slice(0, 7)}`,
+      commitMessage: (path) =>
+        `fix: apply Jargons review suggestions to ${path}`,
+      prTitle: `Jargons: apply suggested fixes for #${input.prNumber}`,
+      prBody: (paths) => fixBody(paths, input.prNumber),
+    })
 
-      span.setAttribute('jargons.fix_pr_opened', result.ok)
-      span.setStatus({ code: SpanStatusCode.OK })
-      return result.ok ? result.url : null
-    } catch (error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : 'open fix PR failed',
-      })
-      span.recordException(error as Error)
-      return null
-    } finally {
-      span.end()
-    }
-  })
+    return result.ok ? result.url : null
+  } catch {
+    return null
+  }
 }
 
 export type ApplyFindingsInput = {
@@ -86,12 +72,10 @@ export type ApplyFindingsResult =
 // changed files to a fresh branch, and open the PR. Returns a structured result
 // so each caller can map the "nothing happened" cases to its own behaviour (the
 // review flow treats them all as null; the scan flow surfaces a reason to the
-// user). Throws only on a real error — callers own the span + error handling.
+// user). Throws only on a real error — callers own the error handling.
 export async function applyFindingsAsFixPr(
   input: ApplyFindingsInput,
 ): Promise<ApplyFindingsResult> {
-  const repository = `${input.owner}/${input.repo}`
-
   // Group findings by file (skip any without a real path).
   const byPath = new Map<string, LlmFinding[]>()
   for (const finding of input.findings) {
@@ -119,7 +103,7 @@ export async function applyFindingsAsFixPr(
   }
   if (files.length === 0) return { ok: false, reason: 'no_files' }
 
-  const fixes = await generateFixes({ repository, files })
+  const fixes = await generateFixes({ files })
   if (fixes.length === 0) return { ok: false, reason: 'no_fixes' }
 
   await createBranch({
