@@ -179,8 +179,11 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
     }
 
     // Freemium gate: opening a fix PR is an agent run, so a free workspace that
-    // has used its lifetime run must upgrade first.
-    const { getWorkspaceBilling } = await import('./billing')
+    // has used its lifetime run must upgrade first. The matching increment
+    // happens further down, once the request has passed validation and is about
+    // to do the billable work.
+    const { getWorkspaceBilling, incrementWorkspaceRuns } =
+      await import('./billing')
     const billing = await getWorkspaceBilling(currentUser.workspace.id)
     if (!billing.canRun) {
       return { url: null, reason: 'upgrade_required' }
@@ -270,6 +273,13 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
         if (!headSha) {
           return { url: null, reason: `Could not read ${baseBranch}.` }
         }
+
+        // Count this against the workspace's plan. Metered on attempt, matching
+        // the review and scan paths: everything past this point costs an LLM
+        // call, so a run that fails downstream is still a run that was spent.
+        // Cheap validation failures above (unknown scan, no installation, no
+        // findings, unreadable branch) return before this and cost nothing.
+        await incrementWorkspaceRuns(workspaceId)
 
         const result = await applyFindingsAsFixPr({
           installationId,
