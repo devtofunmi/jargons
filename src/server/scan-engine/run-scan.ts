@@ -3,6 +3,7 @@
 // failure log says which step broke.
 
 import { loadDb } from '../../db/load'
+import type { LlmUsage } from '../review-engine/autofix'
 import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
 import { fetchFileContent, fetchRepoTree } from './github'
 import type { RepoFile } from './github'
@@ -46,12 +47,21 @@ export async function runScan(input: RunScanInput): Promise<void> {
 
     stage = 'write_summary'
     const counts = countBySeverity(result.findings)
-    await markComplete(input.scanId, files.length, {
-      findings: result.findings,
-      counts,
-      scannedFiles: files.length,
-      model: result.model,
-    })
+    await markComplete(
+      input.scanId,
+      files.length,
+      {
+        findings: result.findings,
+        counts,
+        scannedFiles: files.length,
+        model: result.model,
+      },
+      {
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        costUsd: result.costUsd,
+      },
+    )
 
     stage = 'complete'
     console.log('scan.run complete', {
@@ -131,11 +141,20 @@ async function markComplete(
   scanId: string,
   scannedFiles: number,
   summary: unknown,
+  usage: LlmUsage,
 ) {
   const { eq, db, schema } = await loadDb()
   await db
     .update(schema.codebaseScans)
-    .set({ status: 'complete', scannedFiles, summary, completedAt: new Date() })
+    .set({
+      status: 'complete',
+      scannedFiles,
+      summary,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      costUsd: usage.costUsd,
+      completedAt: new Date(),
+    })
     .where(eq(schema.codebaseScans.id, scanId))
 }
 
