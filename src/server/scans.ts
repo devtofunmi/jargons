@@ -163,6 +163,36 @@ export const getCodebaseScan = createServerFn({ method: 'GET' })
 
 export type OpenScanFixPrResult = { url: string | null; reason?: string }
 
+// Add a fix-PR run's LLM spend to its scan row. Additive rather than a
+// replacement because a scan can produce several fix PRs over time, each a
+// separate run. Best-effort: cost telemetry must never fail the user's action.
+async function addScanLlmUsage(
+  scanId: string,
+  usage: { inputTokens: number; outputTokens: number; costUsd: number },
+): Promise<void> {
+  if (usage.inputTokens === 0 && usage.outputTokens === 0) {
+    return
+  }
+
+  try {
+    const { eq, sql, db, codebaseScans } = await loadDb()
+
+    await db
+      .update(codebaseScans)
+      .set({
+        inputTokens: sql`${codebaseScans.inputTokens} + ${usage.inputTokens}`,
+        outputTokens: sql`${codebaseScans.outputTokens} + ${usage.outputTokens}`,
+        costUsd: sql`${codebaseScans.costUsd} + ${usage.costUsd}`,
+      })
+      .where(eq(codebaseScans.id, scanId))
+  } catch (error) {
+    console.error('failed to record scan fix-PR LLM usage', {
+      scanId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
 // User-initiated: turn a scan's findings into a pull request that applies the
 // fixes, opened into the repository's default branch. Reuses the review
 // engine's LLM autofix + GitHub commit/PR helpers.
@@ -191,7 +221,10 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
 
     const { and, eq, db, codebaseScans, githubInstallations, repositories } =
       await loadDb()
-    const [{ applyFindingsAsFixPr }, { getBranchHeadSha }] = await Promise.all([
+    const [
+      { applyFindingsAsFixPr },
+      { findOpenPullRequestForBranch, getBranchHeadSha },
+    ] = await Promise.all([
       import('./review-engine/open-fix-pr'),
       import('./review-engine/github'),
     ])
@@ -250,7 +283,29 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
     const repo = scan.name
     const baseBranch = scan.defaultBranch || 'main'
 
+    // Deterministic per scan (and per finding), which is what lets the repeat
+    // click below be detected instead of turning into a duplicate PR attempt.
+    const branch = single
+      ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
+      : `jargons/fix-scan-${data.scanId.slice(0, 8)}`
+
     try {
+      // Idempotency, and it has to come before the run is counted. Without it a
+      // second click regenerates the fixes (a full LLM call), then fails on
+      // GitHub's "a pull request already exists for this branch" — spending a
+      // run to show the user a generic error, with no link to the PR that is
+      // sitting right there. Returning that PR is both the cheap answer and the
+      // correct one.
+      const alreadyOpen = await findOpenPullRequestForBranch({
+        installationId,
+        owner,
+        repo,
+        branch,
+      })
+      if (alreadyOpen) {
+        return { url: alreadyOpen }
+      }
+
       const headSha = await getBranchHeadSha({
         installationId,
         owner,
@@ -264,8 +319,9 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
       // Count this against the workspace's plan. Metered on attempt, matching
       // the review and scan paths: everything past this point costs an LLM
       // call, so a run that fails downstream is still a run that was spent.
-      // Cheap validation failures above (unknown scan, no installation, no
-      // findings, unreadable branch) return before this and cost nothing.
+      // Everything that returns above this line — unknown scan, no
+      // installation, no findings, an already-open fix PR, an unreadable
+      // default branch — costs nothing.
       await incrementWorkspaceRuns(workspaceId)
 
       const result = await applyFindingsAsFixPr({
@@ -275,9 +331,7 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
         findings,
         fromSha: headSha,
         base: baseBranch,
-        branch: single
-          ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
-          : `jargons/fix-scan-${data.scanId.slice(0, 8)}`,
+        branch,
         commitMessage: (path) =>
           `fix: apply Jargons scan suggestions to ${path}`,
         prTitle: single
@@ -290,6 +344,12 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
             : `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`
         },
       })
+
+      // A fix PR opened from a scan is its own metered run but has no row of
+      // its own, so its LLM spend accumulates onto the scan it came from. That
+      // keeps the operator cost totals complete; without it this spend would be
+      // invisible even though it counts against the workspace's quota.
+      await addScanLlmUsage(data.scanId, result.usage)
 
       if (result.ok) {
         return { url: result.url }
@@ -304,10 +364,19 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
         }[result.reason],
       }
     } catch (error) {
+      // Every other `reason` this handler returns is copy written for the user,
+      // and the UI renders them. A thrown error is different: its message can
+      // carry a raw GitHub response body or query detail, so it follows the
+      // same rule as the root error boundary — logged for us, never rendered.
+      console.error('open scan fix PR failed', {
+        repository: `${owner}/${repo}`,
+        scanId: data.scanId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+
       return {
         url: null,
-        reason:
-          error instanceof Error ? error.message : 'Could not open fix PR.',
+        reason: 'Could not open the fix PR. Please try again.',
       }
     }
   })
