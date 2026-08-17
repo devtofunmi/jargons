@@ -1,14 +1,11 @@
-// Provider-agnostic LLM review adapter. The call is wrapped in an `llm.review`
-// span with GenAI attributes for SigNoz; the Gemini HTTP call, retry, and cost
-// accounting live in the shared client.
-
-import { SpanStatusCode } from '@opentelemetry/api'
+// Provider-agnostic LLM review adapter. The Gemini HTTP call, retry, and cost
+// accounting live in the shared client; this module owns the prompts, the
+// response schema, and the result shape.
 
 import { SEVERITIES } from '../../lib/severity'
 import type { Severity } from '../../lib/severity'
 import { getOptionalEnv } from '../env'
 import { callGemini } from '../llm/gemini'
-import { tracer } from '../observability'
 import { parseFindings } from './findings'
 
 export type ReviewSeverity = Severity
@@ -48,58 +45,26 @@ export async function reviewDiff(
   // to 2.5-flash) keep working.
   const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
 
-  return tracer.startActiveSpan('llm.review', async (span) => {
-    span.setAttributes({
-      'gen_ai.operation.name': 'chat',
-      'gen_ai.system': provider,
-      'gen_ai.request.model': model,
-      'jargons.repository': input.repository,
-      'jargons.pr_number': input.prNumber,
-    })
+  if (provider !== 'gemini') {
+    throw new Error(`Unsupported LLM_PROVIDER: ${provider}`)
+  }
 
-    try {
-      if (provider !== 'gemini') {
-        throw new Error(`Unsupported LLM_PROVIDER: ${provider}`)
-      }
-
-      const result = await callGemini({
-        model,
-        systemPrompt: systemPrompt(input),
-        userPrompt: userPrompt(input),
-        responseSchema: RESPONSE_SCHEMA,
-        // The findings JSON is small; bound output tokens to control cost.
-        maxOutputTokens: 8192,
-      })
-      const findings = parseFindings(result.text)
-
-      span.setAttributes({
-        'gen_ai.response.model': model,
-        'gen_ai.usage.input_tokens': result.inputTokens,
-        'gen_ai.usage.output_tokens': result.outputTokens,
-        'gen_ai.usage.cost_usd': result.costUsd,
-        'jargons.findings_count': findings.length,
-      })
-
-      span.setStatus({ code: SpanStatusCode.OK })
-
-      return {
-        findings,
-        model,
-        inputTokens: result.inputTokens,
-        outputTokens: result.outputTokens,
-        costUsd: result.costUsd,
-      }
-    } catch (error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : 'LLM review failed',
-      })
-      span.recordException(error as Error)
-      throw error
-    } finally {
-      span.end()
-    }
+  const result = await callGemini({
+    model,
+    systemPrompt: systemPrompt(input),
+    userPrompt: userPrompt(input),
+    responseSchema: RESPONSE_SCHEMA,
+    // The findings JSON is small; bound output tokens to control cost.
+    maxOutputTokens: 8192,
   })
+
+  return {
+    findings: parseFindings(result.text),
+    model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    costUsd: result.costUsd,
+  }
 }
 
 const RESPONSE_SCHEMA = {
