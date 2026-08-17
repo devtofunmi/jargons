@@ -1,21 +1,8 @@
-// Orchestrates one review run under a root `review.run` span. Invoked
-// fire-and-forget, so it never throws — failures are recorded and persisted.
-
-import { SpanStatusCode } from '@opentelemetry/api'
+// Orchestrates one review run. Invoked fire-and-forget, so it never throws —
+// failures are recorded and persisted. `stage` tracks how far the run got, so a
+// failure log says which step broke.
 
 import { loadDb } from '../../db/load'
-import {
-  findingsTotal,
-  llmCostUsdTotal,
-  llmTokensTotal,
-  logError,
-  logInfo,
-  reviewDuration,
-  reviewFailuresTotal,
-  reviewsTotal,
-  tracer,
-  withSpan,
-} from '../observability'
 import { fetchPullRequestDiff, postReviewComment } from './github'
 import { reviewDiff } from './llm'
 import type { LlmFinding } from './llm'
@@ -59,146 +46,95 @@ function withTimeout<T>(
 
 export async function runReview(input: RunReviewInput): Promise<void> {
   const repository = `${input.owner}/${input.repo}`
-  const { workspace } = input
-  const base = { repository, workspace }
-  const startedAt = Date.now()
 
-  await tracer.startActiveSpan('review.run', async (span) => {
-    span.setAttributes({
-      'jargons.review_run_id': input.reviewRunId,
-      'jargons.workspace': workspace,
-      'jargons.repository': repository,
-      'jargons.pr_number': input.prNumber,
+  let stage = 'init'
+
+  try {
+    await markRunning(input.reviewRunId)
+    console.log('review.run started', {
+      reviewRunId: input.reviewRunId,
+      repository,
+      prNumber: input.prNumber,
     })
 
-    let stage = 'init'
+    stage = 'fetch_diff'
+    const { diff, truncated } = await fetchPullRequestDiff({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      prNumber: input.prNumber,
+    })
+    const filesChanged = countChangedFiles(diff)
 
-    try {
-      await markRunning(input.reviewRunId)
-      logInfo('review.run started', {
-        reviewRunId: input.reviewRunId,
-        repository,
-        prNumber: input.prNumber,
-      })
+    stage = 'llm_review'
+    const result = await reviewDiff({
+      repository,
+      prNumber: input.prNumber,
+      prTitle: input.prTitle,
+      diff,
+      reviewSecurity: input.reviewSecurity,
+    })
 
-      stage = 'fetch_diff'
-      const { diff, truncated } = await withSpan('github.fetch_diff', () =>
-        fetchPullRequestDiff({
-          installationId: input.installationId,
-          owner: input.owner,
-          repo: input.repo,
-          prNumber: input.prNumber,
-        }),
-      )
-      const filesChanged = countChangedFiles(diff)
-      span.setAttribute('jargons.files_changed', filesChanged)
+    stage = 'write_findings'
+    await writeFindings(input.reviewRunId, result.findings)
 
-      stage = 'llm_review'
-      const result = await reviewDiff({
-        repository,
-        prNumber: input.prNumber,
-        prTitle: input.prTitle,
-        diff,
-        reviewSecurity: input.reviewSecurity,
-      })
+    // Best-effort: open a PR that applies the fixes. Hard-capped so a slow or
+    // stalled fix step can never block posting the review comment. The cap
+    // must clear a full autofix pass: the LLM regenerates entire files
+    // (~20s on gemini-2.5-flash) plus branch/commit/PR calls, which together
+    // overran the old 25s cap and silently dropped the fix-PR link.
+    stage = 'open_fix_pr'
+    const fixPrUrl =
+      result.findings.length > 0
+        ? await withTimeout(
+            openFixPr(
+              {
+                installationId: input.installationId,
+                owner: input.owner,
+                repo: input.repo,
+                prNumber: input.prNumber,
+                headSha: input.headSha,
+                headRef: input.headRef,
+              },
+              result.findings,
+            ),
+            45_000,
+            null,
+          )
+        : null
 
-      llmTokensTotal.add(result.inputTokens, {
-        kind: 'input',
-        model: result.model,
-        ...base,
-      })
-      llmTokensTotal.add(result.outputTokens, {
-        kind: 'output',
-        model: result.model,
-        ...base,
-      })
-      llmCostUsdTotal.add(result.costUsd, { model: result.model, ...base })
+    stage = 'post_review'
+    await postReviewComment({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      prNumber: input.prNumber,
+      findings: result.findings,
+      truncated,
+      fixPrUrl,
+    })
 
-      stage = 'write_findings'
-      await withSpan('db.write_findings', () =>
-        writeFindings(input.reviewRunId, result.findings),
-      )
-      recordFindingMetrics(result.findings, base)
+    stage = 'complete'
+    await markComplete(input.reviewRunId, filesChanged)
 
-      // Best-effort: open a PR that applies the fixes. Hard-capped so a slow or
-      // stalled fix step can never block posting the review comment. The cap
-      // must clear a full autofix pass: the LLM regenerates entire files
-      // (~20s on gemini-2.5-flash) plus branch/commit/PR calls, which together
-      // overran the old 25s cap and silently dropped the fix-PR link.
-      stage = 'open_fix_pr'
-      const fixPrUrl =
-        result.findings.length > 0
-          ? await withTimeout(
-              openFixPr(
-                {
-                  installationId: input.installationId,
-                  owner: input.owner,
-                  repo: input.repo,
-                  prNumber: input.prNumber,
-                  headSha: input.headSha,
-                  headRef: input.headRef,
-                },
-                result.findings,
-              ),
-              45_000,
-              null,
-            )
-          : null
+    console.log('review.run complete', {
+      reviewRunId: input.reviewRunId,
+      repository,
+      prNumber: input.prNumber,
+      filesChanged,
+      findingsCount: result.findings.length,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Review run failed'
 
-      stage = 'post_review'
-      await withSpan('github.post_review', () =>
-        postReviewComment({
-          installationId: input.installationId,
-          owner: input.owner,
-          repo: input.repo,
-          prNumber: input.prNumber,
-          findings: result.findings,
-          truncated,
-          fixPrUrl,
-        }),
-      )
-
-      stage = 'complete'
-      await markComplete(input.reviewRunId, filesChanged)
-
-      reviewsTotal.add(1, { status: 'complete', ...base })
-      logInfo('review.run complete', {
-        reviewRunId: input.reviewRunId,
-        repository,
-        prNumber: input.prNumber,
-        filesChanged,
-        findingsCount: result.findings.length,
-      })
-      span.setStatus({ code: SpanStatusCode.OK })
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Review run failed'
-
-      await markFailed(input.reviewRunId).catch(() => undefined)
-      reviewsTotal.add(1, { status: 'failed', ...base })
-      reviewFailuresTotal.add(1, { stage, ...base })
-      span.setStatus({ code: SpanStatusCode.ERROR, message })
-      span.recordException(error as Error)
-      logError('review.run failed', {
-        reviewRunId: input.reviewRunId,
-        repository,
-        prNumber: input.prNumber,
-        stage,
-        error: message,
-      })
-    } finally {
-      reviewDuration.record((Date.now() - startedAt) / 1000, base)
-      span.end()
-    }
-  })
-}
-
-function recordFindingMetrics(
-  findings: LlmFinding[],
-  base: { repository: string; workspace: string },
-) {
-  for (const finding of findings) {
-    findingsTotal.add(1, { severity: finding.severity, ...base })
+    await markFailed(input.reviewRunId).catch(() => undefined)
+    console.error('review.run failed', {
+      reviewRunId: input.reviewRunId,
+      repository,
+      prNumber: input.prNumber,
+      stage,
+      error: message,
+    })
   }
 }
 
