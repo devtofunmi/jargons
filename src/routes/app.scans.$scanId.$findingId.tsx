@@ -54,8 +54,10 @@ function ScanFindingPage() {
       : finding.description,
   }
 
-  async function openFixPr(): Promise<{ url: string | null }> {
-    // Free tier used up → send them to pricing instead of opening a PR.
+  async function openFixPr(): Promise<{ url: string | null; reason?: string }> {
+    // Free tier used up → send them to pricing instead of opening a PR. No
+    // reason is passed back in either redirect case: the navigation is the
+    // feedback, so the button should stay quiet rather than flash a message.
     if (!canRun) {
       window.location.assign('/pricing')
       return { url: null }
@@ -67,7 +69,7 @@ function ScanFindingPage() {
       window.location.assign('/pricing')
       return { url: null }
     }
-    return { url: result.url }
+    return { url: result.url, reason: result.reason }
   }
 
   return (
