@@ -14,7 +14,7 @@ export function IssueDetail({
   onOpenFixPr,
 }: {
   issue: Issue
-  onOpenFixPr: () => Promise<{ url: string | null }>
+  onOpenFixPr: () => Promise<{ url: string | null; reason?: string }>
 }) {
   return (
     <>
