@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -213,6 +214,13 @@ export const reviewRuns = pgTable(
     headSha: text('head_sha'),
     status: reviewRunStatus('status').notNull().default('queued'),
     filesChanged: integer('files_changed').notNull().default(0),
+    // LLM usage for this run: the review call plus the autofix call that opens
+    // the companion fix PR. Operator-only cost telemetry — surfaced in the
+    // admin dashboard, never in the workspace UI. costUsd is an estimate priced
+    // from the model's published rates (see llm/gemini.ts), not a billed amount.
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    costUsd: doublePrecision('cost_usd').notNull().default(0),
     startedAt: timestamp('started_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -275,6 +283,13 @@ export const codebaseScans = pgTable('codebase_scans', {
   status: scanStatus('status').notNull().default('queued'),
   scannedFiles: integer('scanned_files').notNull().default(0),
   summary: jsonb('summary'),
+  // LLM usage attributed to this scan: the scan call itself, plus any fix PRs
+  // the user later opens from its findings (those are separate agent runs but
+  // have no row of their own, so their usage accumulates here to keep platform
+  // cost totals complete). Operator-only, same as review_runs.
+  inputTokens: integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  costUsd: doublePrecision('cost_usd').notNull().default(0),
   startedAt: timestamp('started_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
