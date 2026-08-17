@@ -191,16 +191,9 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
 
     const { and, eq, db, codebaseScans, githubInstallations, repositories } =
       await loadDb()
-    const [
-      { applyFindingsAsFixPr },
-      { getBranchHeadSha },
-      { tracer },
-      { SpanStatusCode },
-    ] = await Promise.all([
+    const [{ applyFindingsAsFixPr }, { getBranchHeadSha }] = await Promise.all([
       import('./review-engine/open-fix-pr'),
       import('./review-engine/github'),
-      import('./observability'),
-      import('@opentelemetry/api'),
     ])
 
     const workspaceId = currentUser.workspace.id
@@ -257,81 +250,64 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
     const repo = scan.name
     const baseBranch = scan.defaultBranch || 'main'
 
-    return tracer.startActiveSpan('github.open_scan_fix_pr', async (span) => {
-      span.setAttributes({
-        'jargons.repository': `${owner}/${repo}`,
-        'jargons.scan_id': data.scanId,
+    try {
+      const headSha = await getBranchHeadSha({
+        installationId,
+        owner,
+        repo,
+        branch: baseBranch,
+      })
+      if (!headSha) {
+        return { url: null, reason: `Could not read ${baseBranch}.` }
+      }
+
+      // Count this against the workspace's plan. Metered on attempt, matching
+      // the review and scan paths: everything past this point costs an LLM
+      // call, so a run that fails downstream is still a run that was spent.
+      // Cheap validation failures above (unknown scan, no installation, no
+      // findings, unreadable branch) return before this and cost nothing.
+      await incrementWorkspaceRuns(workspaceId)
+
+      const result = await applyFindingsAsFixPr({
+        installationId,
+        owner,
+        repo,
+        findings,
+        fromSha: headSha,
+        base: baseBranch,
+        branch: single
+          ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
+          : `jargons/fix-scan-${data.scanId.slice(0, 8)}`,
+        commitMessage: (path) =>
+          `fix: apply Jargons scan suggestions to ${path}`,
+        prTitle: single
+          ? `Jargons: fix "${single.title}"`
+          : `Jargons: apply codebase scan fixes`,
+        prBody: (paths) => {
+          const fileList = paths.map((p) => `- \`${p}\``).join('\n')
+          return single
+            ? `Automated fix for a Jargons finding: **${single.title}** (\`${single.filePath}\`).\n\nFiles changed:\n${fileList}`
+            : `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`
+        },
       })
 
-      try {
-        const headSha = await getBranchHeadSha({
-          installationId,
-          owner,
-          repo,
-          branch: baseBranch,
-        })
-        if (!headSha) {
-          return { url: null, reason: `Could not read ${baseBranch}.` }
-        }
-
-        // Count this against the workspace's plan. Metered on attempt, matching
-        // the review and scan paths: everything past this point costs an LLM
-        // call, so a run that fails downstream is still a run that was spent.
-        // Cheap validation failures above (unknown scan, no installation, no
-        // findings, unreadable branch) return before this and cost nothing.
-        await incrementWorkspaceRuns(workspaceId)
-
-        const result = await applyFindingsAsFixPr({
-          installationId,
-          owner,
-          repo,
-          findings,
-          fromSha: headSha,
-          base: baseBranch,
-          branch: single
-            ? `jargons/fix-scan-${data.scanId.slice(0, 8)}-f${data.findingIndex}`
-            : `jargons/fix-scan-${data.scanId.slice(0, 8)}`,
-          commitMessage: (path) =>
-            `fix: apply Jargons scan suggestions to ${path}`,
-          prTitle: single
-            ? `Jargons: fix "${single.title}"`
-            : `Jargons: apply codebase scan fixes`,
-          prBody: (paths) => {
-            const fileList = paths.map((p) => `- \`${p}\``).join('\n')
-            return single
-              ? `Automated fix for a Jargons finding: **${single.title}** (\`${single.filePath}\`).\n\nFiles changed:\n${fileList}`
-              : `Automated fixes for findings from a Jargons codebase scan.\n\nFiles changed:\n${fileList}`
-          },
-        })
-
-        span.setAttribute('jargons.fix_pr_opened', result.ok)
-        span.setStatus({ code: SpanStatusCode.OK })
-        if (result.ok) {
-          return { url: result.url }
-        }
-        return {
-          url: null,
-          reason: {
-            no_paths: 'This scan has no findings to fix.',
-            no_files: 'Affected files could not be read.',
-            no_fixes: 'No applicable fixes were generated.',
-            pr_rejected: 'GitHub rejected the pull request.',
-          }[result.reason],
-        }
-      } catch (error) {
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message:
-            error instanceof Error ? error.message : 'open scan fix PR failed',
-        })
-        span.recordException(error as Error)
-        return {
-          url: null,
-          reason:
-            error instanceof Error ? error.message : 'Could not open fix PR.',
-        }
-      } finally {
-        span.end()
+      if (result.ok) {
+        return { url: result.url }
       }
-    })
+      return {
+        url: null,
+        reason: {
+          no_paths: 'This scan has no findings to fix.',
+          no_files: 'Affected files could not be read.',
+          no_fixes: 'No applicable fixes were generated.',
+          pr_rejected: 'GitHub rejected the pull request.',
+        }[result.reason],
+      }
+    } catch (error) {
+      return {
+        url: null,
+        reason:
+          error instanceof Error ? error.message : 'Could not open fix PR.',
+      }
+    }
   })
