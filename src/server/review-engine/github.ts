@@ -153,8 +153,11 @@ export async function commitFileToBranch({
   }
 }
 
-// Open a pull request. Returns its html_url, or null if GitHub rejects it
-// (e.g. no diff between branches).
+// Open a pull request. Returns its html_url on success, and on failure the HTTP
+// status alongside a null url — callers need it to tell the cases apart: 422 is
+// usually "a pull request already exists for this branch" (recoverable, the
+// existing PR is the answer), while 403 means the app has no write access
+// (nothing to recover). Collapsing them all to null loses that distinction.
 export async function openPullRequest({
   installationId,
   owner,
@@ -171,7 +174,7 @@ export async function openPullRequest({
   base: string
   title: string
   body: string
-}): Promise<string | null> {
+}): Promise<{ url: string | null; status: number }> {
   const token = await createInstallationAccessToken(installationId)
   const response = await fetch(
     `https://api.github.com/repos/${owner}/${repo}/pulls`,
@@ -182,10 +185,10 @@ export async function openPullRequest({
     },
   )
   if (!response.ok) {
-    return null
+    return { url: null, status: response.status }
   }
   const data = (await response.json()) as { html_url?: string }
-  return data.html_url ?? null
+  return { url: data.html_url ?? null, status: response.status }
 }
 
 // Find the open pull request whose head is `branch`, if there is one. Fix-PR

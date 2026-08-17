@@ -3,6 +3,9 @@
 
 import { getOptionalEnv } from '../env'
 import { callGemini } from '../llm/gemini'
+import type { LlmUsage } from '../llm/usage'
+import { parseFixed } from './fixes'
+import type { FixedFile } from './fixes'
 import type { LlmFinding } from './llm'
 
 export type FileToFix = {
@@ -11,35 +14,15 @@ export type FileToFix = {
   findings: LlmFinding[]
 }
 
-export type FixedFile = { path: string; content: string }
-
-// LLM usage for one call. Threaded back to the caller so a run's recorded cost
-// includes the autofix pass, which regenerates whole files and is often the
-// larger half of a review's spend.
-export type LlmUsage = {
-  inputTokens: number
-  outputTokens: number
-  costUsd: number
-}
-
-export const NO_USAGE: LlmUsage = {
-  inputTokens: 0,
-  outputTokens: 0,
-  costUsd: 0,
-}
-
-export function addUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
-  return {
-    inputTokens: a.inputTokens + b.inputTokens,
-    outputTokens: a.outputTokens + b.outputTokens,
-    costUsd: a.costUsd + b.costUsd,
-  }
-}
+export type { FixedFile }
 
 export async function generateFixes({
   files,
+  signal,
 }: {
   files: FileToFix[]
+  // Cancels the call when an outer deadline gives up on it.
+  signal?: AbortSignal
 }): Promise<{ files: FixedFile[]; usage: LlmUsage }> {
   const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
 
@@ -57,6 +40,7 @@ export async function generateFixes({
     // or retried past the budget.
     timeoutMs: 45_000,
     maxAttempts: 1,
+    signal,
   })
 
   return {
@@ -67,34 +51,6 @@ export async function generateFixes({
       costUsd: result.costUsd,
     },
   }
-}
-
-function parseFixed(text: string, files: FileToFix[]): FixedFile[] {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    return []
-  }
-  const raw =
-    parsed && typeof parsed === 'object' && 'files' in parsed
-      ? parsed.files
-      : []
-  if (!Array.isArray(raw)) return []
-
-  const originalPaths = new Set(files.map((f) => f.path))
-  const original = new Map(files.map((f) => [f.path, f.content]))
-
-  return raw.flatMap((item): FixedFile[] => {
-    if (!item || typeof item !== 'object') return []
-    const r = item as Record<string, unknown>
-    const path = typeof r.path === 'string' ? r.path : ''
-    const content = typeof r.content === 'string' ? r.content : ''
-    // Only accept fixes for files we sent, that actually changed something.
-    if (!path || !content || !originalPaths.has(path)) return []
-    if (content === original.get(path)) return []
-    return [{ path, content }]
-  })
 }
 
 const RESPONSE_SCHEMA = {

@@ -360,6 +360,8 @@ export const openScanFixPr = createServerFn({ method: 'POST' })
           no_paths: 'This scan has no findings to fix.',
           no_files: 'Affected files could not be read.',
           no_fixes: 'No applicable fixes were generated.',
+          no_write_access:
+            'Jargons cannot write to this repository. Check that the GitHub App has Contents and Pull requests write access.',
           pr_rejected: 'GitHub rejected the pull request.',
         }[result.reason],
       }

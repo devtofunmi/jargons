@@ -103,7 +103,6 @@ export const Route = createFileRoute('/api/scans/start')({
           runScan({
             scanId,
             installationId,
-            workspace: currentUser.workspace.slug,
             owner: repository.owner,
             repo: repository.name,
             branch: repository.defaultBranch,

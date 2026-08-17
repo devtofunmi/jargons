@@ -3,7 +3,7 @@
 // failure log says which step broke.
 
 import { loadDb } from '../../db/load'
-import type { LlmUsage } from '../review-engine/autofix'
+import type { LlmUsage } from '../llm/usage'
 import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
 import { fetchFileContent, fetchRepoTree } from './github'
 import type { RepoFile } from './github'
@@ -16,7 +16,6 @@ const MAX_TOTAL_CHARS = 50_000
 export type RunScanInput = {
   scanId: string
   installationId: string
-  workspace: string
   owner: string
   repo: string
   branch: string

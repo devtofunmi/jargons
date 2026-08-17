@@ -3,8 +3,8 @@
 // failure log says which step broke.
 
 import { loadDb } from '../../db/load'
-import { addUsage, NO_USAGE } from './autofix'
-import type { LlmUsage } from './autofix'
+import { addUsage, NO_USAGE } from '../llm/usage'
+import type { LlmUsage } from '../llm/usage'
 import { fetchPullRequestDiff, postReviewComment } from './github'
 import { reviewDiff } from './llm'
 import type { LlmFinding } from './llm'
@@ -13,7 +13,6 @@ import { openFixPr } from './open-fix-pr'
 export type RunReviewInput = {
   reviewRunId: string
   installationId: string
-  workspace: string
   owner: string
   repo: string
   prNumber: number
@@ -21,19 +20,30 @@ export type RunReviewInput = {
   headSha: string
   headRef: string
   reviewSecurity: boolean
+  /** PR from a fork: reviewable, but no fix PR can be opened for it. */
+  isFork: boolean
 }
 
-// Cap a best-effort step so it can never block the review: resolves the
-// fallback if the promise hasn't settled within `ms` (the underlying work is
-// abandoned, not awaited further).
+// Cap a best-effort step so it can never block the review: resolves the fallback
+// if the work hasn't settled within `ms`.
+//
+// The deadline also *cancels* the work via the AbortSignal handed to `start`.
+// Previously it only stopped waiting, which left the abandoned autofix call to
+// run on and spend tokens nobody recorded, and could open a fix PR seconds after
+// the review comment that omits its link.
 function withTimeout<T>(
-  promise: Promise<T>,
+  start: (signal: AbortSignal) => Promise<T>,
   ms: number,
   fallback: T,
 ): Promise<T> {
   return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(fallback), ms)
-    promise.then(
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      controller.abort()
+      resolve(fallback)
+    }, ms)
+
+    start(controller.signal).then(
       (value) => {
         clearTimeout(timer)
         resolve(value)
@@ -86,11 +96,23 @@ export async function runReview(input: RunReviewInput): Promise<void> {
     // (~20s on gemini-2.5-flash) plus branch/commit/PR calls, which together
     // overran the old 25s cap and silently dropped the fix-PR link.
     stage = 'open_fix_pr'
-    // On timeout the abandoned autofix call may still complete and spend
-    // tokens; that spend is unrecoverable here, so the fallback reports none.
-    const fix =
-      result.findings.length > 0
-        ? await withTimeout(
+    // On timeout the autofix call is aborted, so nothing keeps spending after we
+    // stop waiting; the fallback reports no usage because none was returned.
+    // Skipped for forks: the head branch lives in the contributor's repo, so
+    // there is nothing here to branch from or open a PR against. Attempting it
+    // just burns an autofix call to fail at the GitHub calls afterwards.
+    const canOpenFixPr = result.findings.length > 0 && !input.isFork
+    if (input.isFork && result.findings.length > 0) {
+      console.log('review.run skipping fix PR for a fork PR', {
+        reviewRunId: input.reviewRunId,
+        repository,
+        prNumber: input.prNumber,
+      })
+    }
+
+    const fix = canOpenFixPr
+      ? await withTimeout(
+          (signal) =>
             openFixPr(
               {
                 installationId: input.installationId,
@@ -101,11 +123,12 @@ export async function runReview(input: RunReviewInput): Promise<void> {
                 headRef: input.headRef,
               },
               result.findings,
+              signal,
             ),
-            45_000,
-            { url: null, usage: NO_USAGE },
-          )
-        : { url: null, usage: NO_USAGE }
+          45_000,
+          { url: null, usage: NO_USAGE },
+        )
+      : { url: null, usage: NO_USAGE }
 
     stage = 'post_review'
     await postReviewComment({

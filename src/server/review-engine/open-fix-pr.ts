@@ -4,8 +4,11 @@
 // Any failure (fork with no write access, LLM error, etc.) returns null — the
 // review itself is never blocked.
 
-import { generateFixes, NO_USAGE } from './autofix'
-import type { FileToFix, LlmUsage } from './autofix'
+import { severityRank } from '../../lib/severity'
+import { NO_USAGE } from '../llm/usage'
+import type { LlmUsage } from '../llm/usage'
+import { generateFixes } from './autofix'
+import type { FileToFix } from './autofix'
 import {
   commitFileToBranch,
   createBranch,
@@ -27,6 +30,7 @@ export type OpenFixPrInput = {
 export async function openFixPr(
   input: OpenFixPrInput,
   findings: LlmFinding[],
+  signal?: AbortSignal,
 ): Promise<{ url: string | null; usage: LlmUsage }> {
   try {
     const result = await applyFindingsAsFixPr({
@@ -41,6 +45,7 @@ export async function openFixPr(
         `fix: apply Jargons review suggestions to ${path}`,
       prTitle: `Jargons: apply suggested fixes for #${input.prNumber}`,
       prBody: (paths) => fixBody(paths, input.prNumber),
+      signal,
     })
 
     // The fix PR is best-effort, but its token spend is real either way, so the
@@ -66,6 +71,8 @@ export type ApplyFindingsInput = {
   commitMessage: (path: string) => string
   prTitle: string
   prBody: (paths: string[]) => string
+  /** Cancels the autofix call if the caller's deadline passes. */
+  signal?: AbortSignal
 }
 
 // `usage` is reported on every branch, including the failures that happen after
@@ -76,9 +83,22 @@ export type ApplyFindingsResult =
   | { ok: true; url: string; usage: LlmUsage }
   | {
       ok: false
-      reason: 'no_paths' | 'no_files' | 'no_fixes' | 'pr_rejected'
+      reason:
+        | 'no_paths'
+        | 'no_files'
+        | 'no_fixes'
+        | 'no_write_access'
+        | 'pr_rejected'
       usage: LlmUsage
     }
+
+// Budgets for the fix pass, mirroring the scan engine's MAX_FILES /
+// MAX_TOTAL_CHARS. Autofix sends every affected file's FULL content in one
+// prompt, so a review with findings spread across many large files would
+// otherwise build an unbounded request. Fixing the most severe files is worth
+// more than attempting all of them and blowing the context.
+const MAX_FILES_TO_FIX = 6
+const MAX_FIX_CHARS = 60_000
 
 // Shared mechanics behind both the review and scan fix-PR flows: group findings
 // by file, fetch each file, ask the LLM for corrected content, commit the
@@ -101,9 +121,25 @@ export async function applyFindingsAsFixPr(
   if (byPath.size === 0)
     return { ok: false, reason: 'no_paths', usage: NO_USAGE }
 
-  // Pull the current content of each affected file at the base sha.
+  // Most severe file first, so if the budget cuts the list short it keeps the
+  // findings that matter most.
+  const candidates = [...byPath.entries()].sort(
+    ([, a], [, b]) => worstSeverity(a) - worstSeverity(b),
+  )
+  if (candidates.length > MAX_FILES_TO_FIX) {
+    console.log('open_fix_pr: capping files to fix', {
+      repository: `${input.owner}/${input.repo}`,
+      candidates: candidates.length,
+      cap: MAX_FILES_TO_FIX,
+      skipped: candidates.slice(MAX_FILES_TO_FIX).map(([path]) => path),
+    })
+  }
+
+  // Pull the current content of each affected file at the base sha, within the
+  // file-count and total-size budget.
   const files: FileToFix[] = []
-  for (const [path, fileFindings] of byPath) {
+  let totalChars = 0
+  for (const [path, fileFindings] of candidates.slice(0, MAX_FILES_TO_FIX)) {
     const file = await fetchFileAtRef({
       installationId: input.installationId,
       owner: input.owner,
@@ -111,14 +147,30 @@ export async function applyFindingsAsFixPr(
       ref: input.fromSha,
       path,
     })
-    if (file) {
-      files.push({ path, content: file.content, findings: fileFindings })
+    if (!file) continue
+
+    // Never send a partial file: autofix must return the COMPLETE corrected
+    // content, and a truncated original would be "fixed" into a truncated file.
+    if (totalChars + file.content.length > MAX_FIX_CHARS) {
+      console.log('open_fix_pr: skipping file, over the size budget', {
+        repository: `${input.owner}/${input.repo}`,
+        path,
+        chars: file.content.length,
+        budgetLeft: MAX_FIX_CHARS - totalChars,
+      })
+      continue
     }
+
+    files.push({ path, content: file.content, findings: fileFindings })
+    totalChars += file.content.length
   }
   if (files.length === 0)
     return { ok: false, reason: 'no_files', usage: NO_USAGE }
 
-  const { files: fixes, usage } = await generateFixes({ files })
+  const { files: fixes, usage } = await generateFixes({
+    files,
+    signal: input.signal,
+  })
   if (fixes.length === 0) return { ok: false, reason: 'no_fixes', usage }
 
   await createBranch({
@@ -150,7 +202,7 @@ export async function applyFindingsAsFixPr(
     })
   }
 
-  const url = await openPullRequest({
+  const opened = await openPullRequest({
     installationId: input.installationId,
     owner: input.owner,
     repo: input.repo,
@@ -159,14 +211,13 @@ export async function applyFindingsAsFixPr(
     title: input.prTitle,
     body: input.prBody(fixes.map((f) => f.path)),
   })
-  if (url) {
-    return { ok: true, url, usage }
+  if (opened.url) {
+    return { ok: true, url: opened.url, usage }
   }
 
-  // openPullRequest collapses every non-ok status into null, and the most
-  // common one is a 422 because a PR for this head branch is already open. If
-  // that's what happened, hand that PR back rather than reporting a failure —
-  // the fixes were just committed to its branch, so it's the right answer.
+  // A 422 is usually "a pull request already exists for this head branch". If
+  // one is open, hand it back rather than reporting a failure — the fixes were
+  // just committed to its branch, so it's the right answer.
   const existing = await findOpenPullRequestForBranch({
     installationId: input.installationId,
     owner: input.owner,
@@ -177,7 +228,25 @@ export async function applyFindingsAsFixPr(
     return { ok: true, url: existing, usage }
   }
 
+  // 403 means the installation can't write here (missing Contents/Pull requests
+  // permission, or an outside-collaborator repo). Worth telling apart from a
+  // generic rejection, because the user has to act on it.
+  if (opened.status === 403) {
+    return { ok: false, reason: 'no_write_access', usage }
+  }
+
+  console.log('open_fix_pr: GitHub rejected the pull request', {
+    repository: `${input.owner}/${input.repo}`,
+    branch: input.branch,
+    base: input.base,
+    status: opened.status,
+  })
+
   return { ok: false, reason: 'pr_rejected', usage }
+}
+
+function worstSeverity(findings: LlmFinding[]): number {
+  return Math.min(...findings.map((f) => severityRank(f.severity)))
 }
 
 function fixBody(paths: string[], prNumber: number): string {

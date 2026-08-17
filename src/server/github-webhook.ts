@@ -14,8 +14,9 @@ type PullRequestEvent = {
     number: number
     title: string
     user: { login: string } | null
-    head: { sha: string; ref: string }
-    base: { sha: string }
+    // head.repo is null when the fork has since been deleted.
+    head: { sha: string; ref: string; repo: { full_name: string } | null }
+    base: { sha: string; repo: { full_name: string } }
   }
   repository: {
     id: number
@@ -83,16 +84,12 @@ export async function handlePullRequestEvent(
 
   const { and, eq, db, schema } = await loadDb()
 
+  // The workspaces join used to be here only to read the slug, which was passed
+  // to runReview to label telemetry. Nothing needs it now, and the workspace_id
+  // foreign key already guarantees the workspace exists.
   const installationRows = await db
-    .select({
-      workspaceId: schema.githubInstallations.workspaceId,
-      workspaceSlug: schema.workspaces.slug,
-    })
+    .select({ workspaceId: schema.githubInstallations.workspaceId })
     .from(schema.githubInstallations)
-    .innerJoin(
-      schema.workspaces,
-      eq(schema.workspaces.id, schema.githubInstallations.workspaceId),
-    )
     .where(
       eq(
         schema.githubInstallations.installationId,
@@ -102,9 +99,8 @@ export async function handlePullRequestEvent(
     .limit(1)
 
   const workspaceId = installationRows[0]?.workspaceId
-  const workspaceSlug = installationRows[0]?.workspaceSlug
 
-  if (!workspaceId || !workspaceSlug) {
+  if (!workspaceId) {
     return { handled: false, reason: 'unknown installation' }
   }
 
@@ -246,7 +242,6 @@ export async function handlePullRequestEvent(
     runReview({
       reviewRunId,
       installationId: String(payload.installation.id),
-      workspace: workspaceSlug,
       owner: payload.repository.owner.login,
       repo: payload.repository.name,
       prNumber: pr.number,
@@ -254,6 +249,10 @@ export async function handlePullRequestEvent(
       headSha: pr.head.sha,
       headRef: pr.head.ref,
       reviewSecurity: settings.reviewSecurity,
+      // A fork's head branch doesn't exist in the base repo, so the fix-PR
+      // pipeline cannot branch from it or open a PR against it. The review
+      // itself works fine, so the run proceeds and only the fix PR is skipped.
+      isFork: pr.head.repo?.full_name !== pr.base.repo.full_name,
     }),
   )
 
