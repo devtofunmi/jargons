@@ -1,11 +1,9 @@
-// Provider-agnostic LLM codebase scan, wrapped in an `llm.scan` span with
-// GenAI attributes for SigNoz.
-
-import { SpanStatusCode } from '@opentelemetry/api'
+// Provider-agnostic LLM codebase scan. The Gemini HTTP call, retry, and cost
+// accounting live in the shared client; this module owns the prompts, the
+// response schema, and the result shape.
 
 import { getOptionalEnv } from '../env'
 import { callGemini } from '../llm/gemini'
-import { tracer } from '../observability'
 import { SEVERITIES } from '../../lib/severity'
 import { parseFindings } from '../review-engine/findings'
 import type { LlmFinding } from '../review-engine/llm'
@@ -29,56 +27,25 @@ export async function scanCodebase({
   const provider = getOptionalEnv('LLM_PROVIDER', 'gemini')
   const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
 
-  return tracer.startActiveSpan('llm.scan', async (span) => {
-    span.setAttributes({
-      'gen_ai.operation.name': 'chat',
-      'gen_ai.system': provider,
-      'gen_ai.request.model': model,
-      'jargons.repository': repository,
-      'jargons.scanned_files': files.length,
-    })
+  if (provider !== 'gemini') {
+    throw new Error(`Unsupported LLM_PROVIDER: ${provider}`)
+  }
 
-    try {
-      if (provider !== 'gemini') {
-        throw new Error(`Unsupported LLM_PROVIDER: ${provider}`)
-      }
-
-      const result = await callGemini({
-        model,
-        systemPrompt: systemPrompt(),
-        userPrompt: userPrompt(repository, files),
-        responseSchema: RESPONSE_SCHEMA,
-        maxOutputTokens: 8192,
-      })
-      const findings = parseFindings(result.text)
-
-      span.setAttributes({
-        'gen_ai.response.model': model,
-        'gen_ai.usage.input_tokens': result.inputTokens,
-        'gen_ai.usage.output_tokens': result.outputTokens,
-        'gen_ai.usage.cost_usd': result.costUsd,
-        'jargons.findings_count': findings.length,
-      })
-      span.setStatus({ code: SpanStatusCode.OK })
-
-      return {
-        findings,
-        model,
-        inputTokens: result.inputTokens,
-        outputTokens: result.outputTokens,
-        costUsd: result.costUsd,
-      }
-    } catch (error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : 'LLM scan failed',
-      })
-      span.recordException(error as Error)
-      throw error
-    } finally {
-      span.end()
-    }
+  const result = await callGemini({
+    model,
+    systemPrompt: systemPrompt(),
+    userPrompt: userPrompt(repository, files),
+    responseSchema: RESPONSE_SCHEMA,
+    maxOutputTokens: 8192,
   })
+
+  return {
+    findings: parseFindings(result.text),
+    model,
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    costUsd: result.costUsd,
+  }
 }
 
 const RESPONSE_SCHEMA = {
