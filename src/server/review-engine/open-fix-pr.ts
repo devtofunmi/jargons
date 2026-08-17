@@ -48,10 +48,26 @@ export async function openFixPr(
       signal,
     })
 
+    if (!result.ok) {
+      console.log('open_fix_pr: no fix PR opened', {
+        repository: `${input.owner}/${input.repo}`,
+        prNumber: input.prNumber,
+        reason: result.reason,
+      })
+    }
+
     // The fix PR is best-effort, but its token spend is real either way, so the
     // usage is reported even when no PR came out of it.
     return { url: result.ok ? result.url : null, usage: result.usage }
-  } catch {
+  } catch (error) {
+    // Logged, not swallowed. This catch being silent is why a cancelled fix PR
+    // left no trace at all and had to be diagnosed by reproducing the run.
+    console.error('open_fix_pr: failed', {
+      repository: `${input.owner}/${input.repo}`,
+      prNumber: input.prNumber,
+      error: error instanceof Error ? error.message : String(error),
+    })
+
     // A thrown autofix call may still have burned tokens, but the usage is lost
     // with the exception — treat it as zero rather than guess.
     return { url: null, usage: NO_USAGE }
