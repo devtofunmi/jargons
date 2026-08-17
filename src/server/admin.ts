@@ -53,6 +53,13 @@ export type AdminOverview = {
     scans: number
     findings: number
     landingViews: number
+    // Operator-only LLM cost telemetry. Deliberately exposed here and nowhere
+    // else: workspaces see their run quota, not what a run costs to serve.
+    llmTokens: number
+    llmCostUsd: number
+    // Estimated spend per agent run, the number to read against the ~$0.20 of
+    // revenue a Pro run earns. Null until there has been at least one run.
+    costPerRunUsd: number | null
   }
   trends: Array<{
     month: string
@@ -105,7 +112,15 @@ export const getAdminOverview = createServerFn({ method: 'GET' }).handler(
             (select count(*)::int from review_runs) as reviews,
             (select count(*)::int from codebase_scans) as scans,
             (select count(*)::int from findings) as findings,
-            (select count(*)::int from page_views) as views`,
+            (select count(*)::int from page_views) as views,
+            (
+              (select coalesce(sum(input_tokens + output_tokens), 0) from review_runs)
+              + (select coalesce(sum(input_tokens + output_tokens), 0) from codebase_scans)
+            )::bigint as llm_tokens,
+            (
+              (select coalesce(sum(cost_usd), 0) from review_runs)
+              + (select coalesce(sum(cost_usd), 0) from codebase_scans)
+            )::float8 as llm_cost`,
       sqlClient`
           select to_char(date_trunc('month', created_at), 'YYYY-MM') as month, count(*)::int as count
           from users where created_at > now() - interval '12 months'
@@ -144,6 +159,12 @@ export const getAdminOverview = createServerFn({ method: 'GET' }).handler(
     const t = totals[0]
     const pro = Number(t.pro ?? 0)
     const workspaces = Number(t.workspaces ?? 0)
+    // sum() over bigint comes back as a string from postgres-js.
+    const llmTokens = Number(t.llm_tokens ?? 0)
+    const llmCostUsd = Number(t.llm_cost ?? 0)
+    const reviews = Number(t.reviews ?? 0)
+    const scans = Number(t.scans ?? 0)
+    const runs = reviews + scans
 
     const signupMap = new Map(signups.map((r) => [r.month, Number(r.count)]))
     const reviewMap = new Map(
@@ -158,10 +179,13 @@ export const getAdminOverview = createServerFn({ method: 'GET' }).handler(
         pro,
         free: Math.max(0, workspaces - pro),
         mrrUsd: pro * PRO_PRICE_USD,
-        reviews: Number(t.reviews ?? 0),
-        scans: Number(t.scans ?? 0),
+        reviews,
+        scans,
         findings: Number(t.findings ?? 0),
         landingViews: Number(t.views ?? 0),
+        llmTokens,
+        llmCostUsd,
+        costPerRunUsd: runs > 0 ? llmCostUsd / runs : null,
       },
       trends: lastMonths(12).map((month) => ({
         month,
