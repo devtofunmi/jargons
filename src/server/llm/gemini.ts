@@ -53,16 +53,25 @@ async function postWithRetry(
   body: string,
   timeoutMs: number,
   maxAttempts: number,
+  signal: AbortSignal | undefined,
 ): Promise<Response> {
   let lastError: unknown
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (signal?.aborted) {
+      throw new Error('Gemini request aborted by caller')
+    }
+
     if (attempt > 0) {
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
     }
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
+    // The caller's signal aborts this request too, so an outer deadline stops
+    // the in-flight call instead of abandoning it to finish unobserved.
+    const onAbort = () => controller.abort()
+    signal?.addEventListener('abort', onAbort, { once: true })
     const isLastAttempt = attempt === maxAttempts - 1
 
     try {
@@ -89,6 +98,7 @@ async function postWithRetry(
       if (isLastAttempt) throw error
     } finally {
       clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
     }
   }
 
@@ -112,6 +122,10 @@ export type GeminiRequest = {
   // Total attempts including the first (defaults to 2 = one retry). Autofix
   // passes 1 so a slow response isn't retried past its outer time budget.
   maxAttempts?: number
+  // Lets an outer deadline cancel the request. Without it a caller that gives
+  // up (e.g. the fix-PR time cap) leaves the call running to completion, which
+  // spends tokens nobody records and can finish work nobody is waiting for.
+  signal?: AbortSignal
 }
 
 export type GeminiResult = {
@@ -131,6 +145,7 @@ export async function callGemini({
   temperature = 0.1,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   maxAttempts = 2,
+  signal,
 }: GeminiRequest): Promise<GeminiResult> {
   const apiKey = getOptionalEnv('GEMINI_API_KEY', '')
 
@@ -159,6 +174,7 @@ export async function callGemini({
     body,
     timeoutMs,
     maxAttempts,
+    signal,
   )
 
   if (!response.ok) {
