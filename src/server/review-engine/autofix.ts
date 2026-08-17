@@ -13,11 +13,34 @@ export type FileToFix = {
 
 export type FixedFile = { path: string; content: string }
 
+// LLM usage for one call. Threaded back to the caller so a run's recorded cost
+// includes the autofix pass, which regenerates whole files and is often the
+// larger half of a review's spend.
+export type LlmUsage = {
+  inputTokens: number
+  outputTokens: number
+  costUsd: number
+}
+
+export const NO_USAGE: LlmUsage = {
+  inputTokens: 0,
+  outputTokens: 0,
+  costUsd: 0,
+}
+
+export function addUsage(a: LlmUsage, b: LlmUsage): LlmUsage {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    costUsd: a.costUsd + b.costUsd,
+  }
+}
+
 export async function generateFixes({
   files,
 }: {
   files: FileToFix[]
-}): Promise<FixedFile[]> {
+}): Promise<{ files: FixedFile[]; usage: LlmUsage }> {
   const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
 
   const result = await callGemini({
@@ -36,7 +59,14 @@ export async function generateFixes({
     maxAttempts: 1,
   })
 
-  return parseFixed(result.text, files)
+  return {
+    files: parseFixed(result.text, files),
+    usage: {
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      costUsd: result.costUsd,
+    },
+  }
 }
 
 function parseFixed(text: string, files: FileToFix[]): FixedFile[] {

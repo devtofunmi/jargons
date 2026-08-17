@@ -4,12 +4,13 @@
 // Any failure (fork with no write access, LLM error, etc.) returns null — the
 // review itself is never blocked.
 
-import { generateFixes } from './autofix'
-import type { FileToFix } from './autofix'
+import { generateFixes, NO_USAGE } from './autofix'
+import type { FileToFix, LlmUsage } from './autofix'
 import {
   commitFileToBranch,
   createBranch,
   fetchFileAtRef,
+  findOpenPullRequestForBranch,
   openPullRequest,
 } from './github'
 import type { LlmFinding } from './llm'
@@ -26,7 +27,7 @@ export type OpenFixPrInput = {
 export async function openFixPr(
   input: OpenFixPrInput,
   findings: LlmFinding[],
-): Promise<string | null> {
+): Promise<{ url: string | null; usage: LlmUsage }> {
   try {
     const result = await applyFindingsAsFixPr({
       installationId: input.installationId,
@@ -42,9 +43,13 @@ export async function openFixPr(
       prBody: (paths) => fixBody(paths, input.prNumber),
     })
 
-    return result.ok ? result.url : null
+    // The fix PR is best-effort, but its token spend is real either way, so the
+    // usage is reported even when no PR came out of it.
+    return { url: result.ok ? result.url : null, usage: result.usage }
   } catch {
-    return null
+    // A thrown autofix call may still have burned tokens, but the usage is lost
+    // with the exception — treat it as zero rather than guess.
+    return { url: null, usage: NO_USAGE }
   }
 }
 
@@ -63,9 +68,17 @@ export type ApplyFindingsInput = {
   prBody: (paths: string[]) => string
 }
 
+// `usage` is reported on every branch, including the failures that happen after
+// the autofix call — those still cost tokens, so dropping them would understate
+// what a run actually spent. It is NO_USAGE only on the paths that return before
+// the LLM is reached.
 export type ApplyFindingsResult =
-  | { ok: true; url: string }
-  | { ok: false; reason: 'no_paths' | 'no_files' | 'no_fixes' | 'pr_rejected' }
+  | { ok: true; url: string; usage: LlmUsage }
+  | {
+      ok: false
+      reason: 'no_paths' | 'no_files' | 'no_fixes' | 'pr_rejected'
+      usage: LlmUsage
+    }
 
 // Shared mechanics behind both the review and scan fix-PR flows: group findings
 // by file, fetch each file, ask the LLM for corrected content, commit the
@@ -85,7 +98,8 @@ export async function applyFindingsAsFixPr(
       finding,
     ])
   }
-  if (byPath.size === 0) return { ok: false, reason: 'no_paths' }
+  if (byPath.size === 0)
+    return { ok: false, reason: 'no_paths', usage: NO_USAGE }
 
   // Pull the current content of each affected file at the base sha.
   const files: FileToFix[] = []
@@ -101,10 +115,11 @@ export async function applyFindingsAsFixPr(
       files.push({ path, content: file.content, findings: fileFindings })
     }
   }
-  if (files.length === 0) return { ok: false, reason: 'no_files' }
+  if (files.length === 0)
+    return { ok: false, reason: 'no_files', usage: NO_USAGE }
 
-  const fixes = await generateFixes({ files })
-  if (fixes.length === 0) return { ok: false, reason: 'no_fixes' }
+  const { files: fixes, usage } = await generateFixes({ files })
+  if (fixes.length === 0) return { ok: false, reason: 'no_fixes', usage }
 
   await createBranch({
     installationId: input.installationId,
@@ -144,8 +159,25 @@ export async function applyFindingsAsFixPr(
     title: input.prTitle,
     body: input.prBody(fixes.map((f) => f.path)),
   })
+  if (url) {
+    return { ok: true, url, usage }
+  }
 
-  return url ? { ok: true, url } : { ok: false, reason: 'pr_rejected' }
+  // openPullRequest collapses every non-ok status into null, and the most
+  // common one is a 422 because a PR for this head branch is already open. If
+  // that's what happened, hand that PR back rather than reporting a failure —
+  // the fixes were just committed to its branch, so it's the right answer.
+  const existing = await findOpenPullRequestForBranch({
+    installationId: input.installationId,
+    owner: input.owner,
+    repo: input.repo,
+    branch: input.branch,
+  })
+  if (existing) {
+    return { ok: true, url: existing, usage }
+  }
+
+  return { ok: false, reason: 'pr_rejected', usage }
 }
 
 function fixBody(paths: string[], prNumber: number): string {

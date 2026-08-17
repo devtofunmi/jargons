@@ -3,6 +3,8 @@
 // failure log says which step broke.
 
 import { loadDb } from '../../db/load'
+import { addUsage, NO_USAGE } from './autofix'
+import type { LlmUsage } from './autofix'
 import { fetchPullRequestDiff, postReviewComment } from './github'
 import { reviewDiff } from './llm'
 import type { LlmFinding } from './llm'
@@ -84,7 +86,9 @@ export async function runReview(input: RunReviewInput): Promise<void> {
     // (~20s on gemini-2.5-flash) plus branch/commit/PR calls, which together
     // overran the old 25s cap and silently dropped the fix-PR link.
     stage = 'open_fix_pr'
-    const fixPrUrl =
+    // On timeout the abandoned autofix call may still complete and spend
+    // tokens; that spend is unrecoverable here, so the fallback reports none.
+    const fix =
       result.findings.length > 0
         ? await withTimeout(
             openFixPr(
@@ -99,9 +103,9 @@ export async function runReview(input: RunReviewInput): Promise<void> {
               result.findings,
             ),
             45_000,
-            null,
+            { url: null, usage: NO_USAGE },
           )
-        : null
+        : { url: null, usage: NO_USAGE }
 
     stage = 'post_review'
     await postReviewComment({
@@ -111,11 +115,24 @@ export async function runReview(input: RunReviewInput): Promise<void> {
       prNumber: input.prNumber,
       findings: result.findings,
       truncated,
-      fixPrUrl,
+      fixPrUrl: fix.url,
     })
 
     stage = 'complete'
-    await markComplete(input.reviewRunId, filesChanged)
+    // Both LLM calls this run made: the review, and the autofix behind the fix
+    // PR. Recorded together as the run's cost.
+    await markComplete(
+      input.reviewRunId,
+      filesChanged,
+      addUsage(
+        {
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd: result.costUsd,
+        },
+        fix.usage,
+      ),
+    )
 
     console.log('review.run complete', {
       reviewRunId: input.reviewRunId,
@@ -153,12 +170,23 @@ async function markRunning(reviewRunId: string) {
     .where(eq(schema.reviewRuns.id, reviewRunId))
 }
 
-async function markComplete(reviewRunId: string, filesChanged: number) {
+async function markComplete(
+  reviewRunId: string,
+  filesChanged: number,
+  usage: LlmUsage,
+) {
   const { eq, db, schema } = await loadDb()
 
   await db
     .update(schema.reviewRuns)
-    .set({ status: 'complete', filesChanged, completedAt: new Date() })
+    .set({
+      status: 'complete',
+      filesChanged,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      costUsd: usage.costUsd,
+      completedAt: new Date(),
+    })
     .where(eq(schema.reviewRuns.id, reviewRunId))
 }
 
