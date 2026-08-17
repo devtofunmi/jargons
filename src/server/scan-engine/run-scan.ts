@@ -1,22 +1,8 @@
-// Orchestrates one codebase scan under a root `scan.run` span. Invoked
-// fire-and-forget, so it never throws — failures are recorded and persisted.
-
-import { SpanStatusCode } from '@opentelemetry/api'
+// Orchestrates one codebase scan. Invoked fire-and-forget, so it never throws —
+// failures are recorded and persisted. `stage` tracks how far the run got, so a
+// failure log says which step broke.
 
 import { loadDb } from '../../db/load'
-import {
-  llmCostUsdTotal,
-  llmTokensTotal,
-  logError,
-  logInfo,
-  scanDuration,
-  scanFailuresTotal,
-  scanFilesTotal,
-  scanFindingsTotal,
-  scansTotal,
-  tracer,
-  withSpan,
-} from '../observability'
 import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
 import { fetchFileContent, fetchRepoTree } from './github'
 import type { RepoFile } from './github'
@@ -37,93 +23,54 @@ export type RunScanInput = {
 
 export async function runScan(input: RunScanInput): Promise<void> {
   const repository = `${input.owner}/${input.repo}`
-  const { workspace } = input
-  const base = { repository, workspace }
-  const startedAt = Date.now()
 
-  await tracer.startActiveSpan('scan.run', async (span) => {
-    span.setAttributes({
-      'jargons.scan_id': input.scanId,
-      'jargons.workspace': workspace,
-      'jargons.repository': repository,
+  let stage = 'init'
+
+  try {
+    await markRunning(input.scanId)
+    console.log('scan.run started', { scanId: input.scanId, repository })
+
+    stage = 'fetch_tree'
+    const paths = await fetchRepoTree({
+      installationId: input.installationId,
+      owner: input.owner,
+      repo: input.repo,
+      branch: input.branch,
     })
 
-    let stage = 'init'
+    stage = 'fetch_files'
+    const files = await collectFiles(input, paths)
 
-    try {
-      await markRunning(input.scanId)
-      logInfo('scan.run started', { scanId: input.scanId, repository })
+    stage = 'llm_scan'
+    const result = await scanCodebase({ repository, files })
 
-      stage = 'fetch_tree'
-      const paths = await withSpan('github.fetch_tree', () =>
-        fetchRepoTree({
-          installationId: input.installationId,
-          owner: input.owner,
-          repo: input.repo,
-          branch: input.branch,
-        }),
-      )
+    stage = 'write_summary'
+    const counts = countBySeverity(result.findings)
+    await markComplete(input.scanId, files.length, {
+      findings: result.findings,
+      counts,
+      scannedFiles: files.length,
+      model: result.model,
+    })
 
-      stage = 'fetch_files'
-      const files = await withSpan('github.fetch_files', () =>
-        collectFiles(input, paths),
-      )
-      span.setAttribute('jargons.scanned_files', files.length)
+    stage = 'complete'
+    console.log('scan.run complete', {
+      scanId: input.scanId,
+      repository,
+      scannedFiles: files.length,
+      findingsCount: result.findings.length,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Scan run failed'
 
-      stage = 'llm_scan'
-      const result = await scanCodebase({ repository, files })
-      llmTokensTotal.add(result.inputTokens, {
-        kind: 'input',
-        model: result.model,
-        ...base,
-      })
-      llmTokensTotal.add(result.outputTokens, {
-        kind: 'output',
-        model: result.model,
-        ...base,
-      })
-      llmCostUsdTotal.add(result.costUsd, { model: result.model, ...base })
-
-      stage = 'write_summary'
-      const counts = countBySeverity(result.findings)
-      await withSpan('db.write_summary', () =>
-        markComplete(input.scanId, files.length, {
-          findings: result.findings,
-          counts,
-          scannedFiles: files.length,
-          model: result.model,
-        }),
-      )
-      recordFindingMetrics(result.findings, base)
-      scanFilesTotal.add(files.length, base)
-
-      stage = 'complete'
-      scansTotal.add(1, { status: 'complete', ...base })
-      logInfo('scan.run complete', {
-        scanId: input.scanId,
-        repository,
-        scannedFiles: files.length,
-        findingsCount: result.findings.length,
-      })
-      span.setStatus({ code: SpanStatusCode.OK })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Scan run failed'
-      await markFailed(input.scanId).catch(() => undefined)
-      scansTotal.add(1, { status: 'failed', ...base })
-      scanFailuresTotal.add(1, { stage, ...base })
-      span.setStatus({ code: SpanStatusCode.ERROR, message })
-      span.recordException(error as Error)
-      logError('scan.run failed', {
-        scanId: input.scanId,
-        repository,
-        stage,
-        error: message,
-      })
-    } finally {
-      scanDuration.record((Date.now() - startedAt) / 1000, base)
-      span.end()
-    }
-  })
+    await markFailed(input.scanId).catch(() => undefined)
+    console.error('scan.run failed', {
+      scanId: input.scanId,
+      repository,
+      stage,
+      error: message,
+    })
+  }
 }
 
 async function collectFiles(
@@ -154,15 +101,6 @@ async function collectFiles(
   }
 
   return files
-}
-
-function recordFindingMetrics(
-  findings: LlmFinding[],
-  base: { repository: string; workspace: string },
-) {
-  for (const finding of findings) {
-    scanFindingsTotal.add(1, { severity: finding.severity, ...base })
-  }
 }
 
 function countBySeverity(
