@@ -188,6 +188,41 @@ export async function openPullRequest({
   return data.html_url ?? null
 }
 
+// Find the open pull request whose head is `branch`, if there is one. Fix-PR
+// branch names are deterministic, so this is what makes the flow idempotent: a
+// repeat attempt can hand back the PR that already exists instead of
+// regenerating the fixes and then failing on GitHub's "a pull request already
+// exists for this branch" (422). Returns null on any non-ok response, so a
+// lookup failure just falls through to the normal path.
+export async function findOpenPullRequestForBranch({
+  installationId,
+  owner,
+  repo,
+  branch,
+}: {
+  installationId: string
+  owner: string
+  repo: string
+  branch: string
+}): Promise<string | null> {
+  const token = await createInstallationAccessToken(installationId)
+  // `head` must be qualified as owner:ref. Fix branches live in the same repo,
+  // so the repo owner is always the right qualifier.
+  const head = encodeURIComponent(`${owner}:${branch}`)
+  const response = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/pulls?state=open&head=${head}&per_page=1`,
+    { headers: githubHeaders(`Bearer ${token}`) },
+  )
+
+  if (!response.ok) {
+    return null
+  }
+
+  const data = (await response.json()) as Array<{ html_url?: string }>
+
+  return data[0]?.html_url ?? null
+}
+
 // Nudge a free workspace to upgrade once it has used its trial run. Posted as
 // a plain PR comment. Best-effort — never throws.
 export async function postUpgradeComment({
