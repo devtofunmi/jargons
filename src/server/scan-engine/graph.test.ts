@@ -217,8 +217,12 @@ describe('buildModuleGraph', () => {
   })
 
   it('defaults to a cap a reader can actually take in', () => {
-    const paths = Array.from({ length: 60 }, (_, i) => `mod${i}/file.ts`)
-    const graph = buildModuleGraph({ paths, edges: [], findings: [] })
+    const manyPaths = Array.from({ length: 60 }, (_, i) => `mod${i}/file.ts`)
+    const graph = buildModuleGraph({
+      paths: manyPaths,
+      edges: [],
+      findings: [],
+    })
 
     expect(graph.modules.length).toBeLessThanOrEqual(MAX_MODULES)
     expect(graph.modules.length + graph.omittedModules).toBe(60)
