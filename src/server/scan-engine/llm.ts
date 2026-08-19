@@ -168,7 +168,11 @@ function parseLabels(text: string, asked: Set<string>): Record<string, string> {
     return {}
   }
 
-  const raw = (payload as { modules?: unknown })?.modules
+  // JSON.parse happily returns null or a bare string, neither of which has a
+  // `modules` property to read.
+  if (!payload || typeof payload !== 'object') return {}
+
+  const raw = (payload as { modules?: unknown }).modules
   if (!Array.isArray(raw)) return {}
 
   const labels: Record<string, string> = {}
