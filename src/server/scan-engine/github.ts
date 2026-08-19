@@ -40,6 +40,11 @@ const SKIP_DIRS = [
 
 export type RepoFile = { path: string; content: string }
 
+// How many file reads run at once. The installation token is cached, so these
+// are one request each; the ceiling is about not hammering GitHub rather than
+// about rate-limit arithmetic.
+const FETCH_CONCURRENCY = 8
+
 export async function fetchRepoTree({
   installationId,
   owner,
@@ -112,4 +117,65 @@ export async function fetchFileContent({
   }
 
   return Buffer.from(data.content, 'base64').toString('utf8')
+}
+
+// Read an explicit list of files, a few at a time. Only these paths are
+// fetched — the scan never pulls a whole repository, so what it reads is always
+// a list something decided on rather than everything that happened to be there.
+//
+// Results keep the order of `paths` regardless of which read finishes first, so
+// a scan of an unchanged repository always produces the same input. A file that
+// cannot be read is skipped rather than failing the run: one unreadable file
+// should cost its own edges, not the entire map.
+export async function fetchFiles({
+  installationId,
+  owner,
+  repo,
+  branch,
+  paths,
+  maxChars,
+}: {
+  installationId: string
+  owner: string
+  repo: string
+  branch: string
+  paths: string[]
+  // Per-file cap. The graph pass only needs the head of a file, since that is
+  // where import statements live.
+  maxChars?: number
+}): Promise<RepoFile[]> {
+  const results: Array<RepoFile | null> = new Array(paths.length).fill(null)
+  let next = 0
+
+  const worker = async () => {
+    for (;;) {
+      const index = next
+      next += 1
+      if (index >= paths.length) return
+
+      const path = paths[index]
+      try {
+        const content = await fetchFileContent({
+          installationId,
+          owner,
+          repo,
+          branch,
+          path,
+        })
+        if (content === null) continue
+        results[index] = {
+          path,
+          content: maxChars ? content.slice(0, maxChars) : content,
+        }
+      } catch {
+        // Unreadable file: leave the slot empty and keep going.
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(FETCH_CONCURRENCY, paths.length) }, worker),
+  )
+
+  return results.filter((file): file is RepoFile => file !== null)
 }
