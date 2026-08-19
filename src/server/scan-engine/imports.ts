@@ -236,7 +236,9 @@ export function buildImportEdges(
   files: Array<{ path: string; content: string }>,
   index: PathIndex,
 ): ImportEdge[] {
-  const seen = new Set<string>()
+  // Nested rather than a joined string key: a repository path may contain any
+  // character, so there is no separator that is safe to join on.
+  const seen = new Map<string, Set<string>>()
   const edges: ImportEdge[] = []
 
   for (const file of files) {
@@ -244,9 +246,10 @@ export function buildImportEdges(
       const target = resolveSpecifier(file.path, specifier, index)
       if (!target || target === file.path) continue
 
-      const key = `${file.path} ${target}`
-      if (seen.has(key)) continue
-      seen.add(key)
+      const targets = seen.get(file.path) ?? new Set<string>()
+      if (targets.has(target)) continue
+      targets.add(target)
+      seen.set(file.path, targets)
       edges.push({ from: file.path, to: target })
     }
   }
