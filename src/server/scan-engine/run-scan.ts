@@ -6,9 +6,8 @@ import { loadDb } from '../../db/load'
 import { NO_USAGE, addUsage } from '../llm/usage'
 import type { LlmUsage } from '../llm/usage'
 import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
-import { selectGraphCandidates } from './candidates'
+import { selectGraphCandidates, withinCharBudget } from './candidates'
 import { fetchFiles, fetchRepoTree } from './github'
-import type { RepoFile } from './github'
 import { buildModuleGraph, rankFilesByFanIn } from './graph'
 import type { ModuleGraph } from './graph'
 import { buildImportEdges, createPathIndex } from './imports'
@@ -35,6 +34,12 @@ export type RunScanInput = {
   owner: string
   repo: string
   branch: string
+  // Whether to build the architecture map for this run. Off means the module
+  // graph and its labelling call are skipped entirely, so a scan for someone
+  // without the flag costs no extra LLM spend. The import graph itself is still
+  // built either way — it decides which files get scanned, which is an
+  // improvement everyone gets.
+  architectureMap: boolean
 }
 
 export async function runScan(input: RunScanInput): Promise<void> {
@@ -95,13 +100,15 @@ export async function runScan(input: RunScanInput): Promise<void> {
     }
 
     stage = 'architecture_map'
-    const mapped = await buildArchitecture({
-      repository,
-      paths,
-      edges,
-      findings: result.findings,
-      graphedFiles: heads.length,
-    })
+    const mapped = input.architectureMap
+      ? await buildArchitecture({
+          repository,
+          paths,
+          edges,
+          findings: result.findings,
+          graphedFiles: heads.length,
+        })
+      : { architecture: null, usage: NO_USAGE }
     usage = addUsage(usage, mapped.usage)
 
     stage = 'write_summary'
@@ -244,29 +251,6 @@ function sampleFilesFor(moduleId: string, paths: string[]): string[] {
   }
 
   return names
-}
-
-// Trim the read files down to the prompt budget in the order they were ranked,
-// so the cut lands on the least-depended-upon file rather than an arbitrary one.
-function withinCharBudget(
-  files: RepoFile[],
-  maxTotalChars: number,
-): RepoFile[] {
-  const kept: RepoFile[] = []
-  let total = 0
-
-  for (const file of files) {
-    if (total >= maxTotalChars) break
-    const remaining = maxTotalChars - total
-    const content =
-      file.content.length > remaining
-        ? file.content.slice(0, remaining)
-        : file.content
-    kept.push({ path: file.path, content })
-    total += content.length
-  }
-
-  return kept
 }
 
 function countBySeverity(

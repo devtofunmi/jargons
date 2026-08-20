@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { loadDb } from '../db/load'
+import { isArchitectureMapEnabled } from '../server/flags'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
 export const Route = createFileRoute('/api/scans/start')({
@@ -106,6 +107,9 @@ export const Route = createFileRoute('/api/scans/start')({
             owner: repository.owner,
             repo: repository.name,
             branch: repository.defaultBranch,
+            // Decided here rather than inside the engine: the flag is about who
+            // asked for the scan, and the engine only knows the repository.
+            architectureMap: isArchitectureMapEnabled(currentUser.username),
           }),
         )
 
