@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { MAX_GRAPH_FILES, scorePath, selectGraphCandidates } from './candidates'
+import {
+  MAX_GRAPH_FILES,
+  scorePath,
+  selectGraphCandidates,
+  withinCharBudget,
+} from './candidates'
 
 describe('scorePath', () => {
   it('ranks application source above everything else', () => {
@@ -80,5 +85,62 @@ describe('selectGraphCandidates', () => {
   it('reads nothing when the cap is zero or negative', () => {
     expect(selectGraphCandidates(['src/a.ts'], 0)).toEqual([])
     expect(selectGraphCandidates(['src/a.ts'], -5)).toEqual([])
+  })
+})
+
+describe('withinCharBudget', () => {
+  const file = (path: string, length: number) => ({
+    path,
+    content: 'x'.repeat(length),
+  })
+
+  it('does not let one large file starve the rest', () => {
+    // The top-ranked file is the most-imported one, so it is exactly the file
+    // most likely to be huge. Spending the budget in rank order would leave the
+    // other three unread.
+    const kept = withinCharBudget(
+      [
+        file('huge.ts', 5000),
+        file('b.ts', 100),
+        file('c.ts', 100),
+        file('d.ts', 100),
+      ],
+      1000,
+    )
+
+    expect(kept.map((f) => f.path)).toEqual(['huge.ts', 'b.ts', 'c.ts', 'd.ts'])
+    expect(kept[0].content.length).toBe(700)
+  })
+
+  it('never exceeds the budget', () => {
+    const kept = withinCharBudget(
+      [file('a.ts', 900), file('b.ts', 900), file('c.ts', 900)],
+      1000,
+    )
+
+    const total = kept.reduce((sum, f) => sum + f.content.length, 0)
+    expect(total).toBeLessThanOrEqual(1000)
+  })
+
+  it('leaves small files whole and spends the remainder on the ranked leader', () => {
+    const kept = withinCharBudget(
+      [file('big.ts', 800), file('small.ts', 10)],
+      1000,
+    )
+
+    expect(kept[1].content.length).toBe(10)
+    // 500 share, plus the 490 left unspent by the small file.
+    expect(kept[0].content.length).toBe(800)
+  })
+
+  it('keeps every file whole when they all fit', () => {
+    const kept = withinCharBudget([file('a.ts', 10), file('b.ts', 20)], 1000)
+
+    expect(kept.map((f) => f.content.length)).toEqual([10, 20])
+  })
+
+  it('reads nothing with no files or no budget', () => {
+    expect(withinCharBudget([], 1000)).toEqual([])
+    expect(withinCharBudget([file('a.ts', 10)], 0)).toEqual([])
   })
 })
