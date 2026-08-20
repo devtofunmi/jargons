@@ -86,7 +86,10 @@ export function ArchitectureMap({
           : null}
       </p>
 
-      <div className="custom-scrollbar mt-5 overflow-x-auto">
+      {/* Bounded in both directions: a map whose modules barely depend on each
+          other lays out as one tall column, and without a ceiling that card
+          would push the findings list off the page. */}
+      <div className="custom-scrollbar mt-5 max-h-[70vh] overflow-auto">
         <svg
           role="img"
           aria-label="Module dependency map for this repository"
