@@ -123,6 +123,7 @@ export function tokenIsFresh(expiresAt: number, now: number): boolean {
 
 async function mintInstallationAccessToken(
   installationId: string,
+  now: number,
 ): Promise<CachedToken> {
   const jwt = await createGitHubAppJwt()
   const response = await fetch(
@@ -151,7 +152,7 @@ async function mintInstallationAccessToken(
   return {
     token: token.token,
     expiresAt: Number.isNaN(expiresAt)
-      ? Date.now() + TOKEN_FALLBACK_TTL_MS
+      ? now + TOKEN_FALLBACK_TTL_MS
       : expiresAt,
   }
 }
@@ -161,15 +162,16 @@ async function mintInstallationAccessToken(
 export async function createInstallationAccessToken(
   installationId: string,
 ): Promise<string> {
+  const now = Date.now()
   const cached = tokenCache.get(installationId)
-  if (cached && tokenIsFresh(cached.expiresAt, Date.now())) {
+  if (cached && tokenIsFresh(cached.expiresAt, now)) {
     return cached.token
   }
 
   const pending = tokenRequests.get(installationId)
   if (pending) return pending
 
-  const request = mintInstallationAccessToken(installationId)
+  const request = mintInstallationAccessToken(installationId, now)
     .then((minted) => {
       tokenCache.set(installationId, minted)
       return minted.token
