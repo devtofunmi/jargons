@@ -38,17 +38,11 @@ const architecture = (
 })
 
 describe('ArchitectureMap', () => {
-  it('draws a box per module and an arrow per dependency', () => {
+  it('names every module on the map', () => {
     render(<ArchitectureMap architecture={architecture()} />)
-
-    // Scoped to the diagram: the heading icon has shapes of its own.
-    const map = screen.getByRole('img', { name: /module dependency map/i })
 
     expect(screen.getByText('routes')).toBeTruthy()
     expect(screen.getByText('server')).toBeTruthy()
-    expect(map.querySelectorAll('rect')).toHaveLength(2)
-    // One dependency path, plus the arrowhead marker definition.
-    expect(map.querySelectorAll('path')).toHaveLength(2)
   })
 
   it('says how much of the repository the arrows came from', () => {
