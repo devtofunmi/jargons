@@ -3,11 +3,16 @@ import { createServerFn } from '@tanstack/react-start'
 import { SEVERITIES, severityRank } from '../lib/severity'
 import type { Severity } from '../lib/severity'
 import { loadDb } from '../db/load'
+import { isArchitectureMapEnabled } from './flags'
 import { getCurrentUserFromCookie } from './github-auth'
-import { summaryToCounts } from './scan-engine/summary'
-import type { ScanFindingCounts, ScanSummary } from './scan-engine/summary'
+import { summaryToArchitecture, summaryToCounts } from './scan-engine/summary'
+import type {
+  ScanArchitecture,
+  ScanFindingCounts,
+  ScanSummary,
+} from './scan-engine/summary'
 
-export type { ScanFindingCounts }
+export type { ScanArchitecture, ScanFindingCounts }
 
 export type CodebaseScanItem = {
   id: string
@@ -74,6 +79,9 @@ export type CodebaseScanFinding = {
 
 export type CodebaseScanDetail = CodebaseScanItem & {
   findings: CodebaseScanFinding[]
+  // Null for a scan that ran before the map existed, or one whose repository
+  // had no modules to draw.
+  architecture: ScanArchitecture | null
 }
 
 const uuidPattern =
@@ -158,6 +166,11 @@ export const getCodebaseScan = createServerFn({ method: 'GET' })
       startedAt: scan.startedAt?.toISOString() ?? null,
       completedAt: scan.completedAt?.toISOString() ?? null,
       findings: summaryToFindings(scan.summary),
+      // Gated on read as well as on write, so taking someone off the flag hides
+      // the map on scans that already stored one.
+      architecture: isArchitectureMapEnabled(currentUser.username)
+        ? summaryToArchitecture(scan.summary)
+        : null,
     }
   })
 

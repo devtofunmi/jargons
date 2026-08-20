@@ -96,7 +96,34 @@ export async function getInstallation(installationId: string) {
   return (await response.json()) as GitHubInstallation
 }
 
-export async function createInstallationAccessToken(installationId: string) {
+// An installation token is good for an hour, so minting one per API call is
+// pure waste — it doubles the request count of anything that reads more than a
+// single file, and the codebase scan reads hundreds. Cached per installation
+// until shortly before it expires.
+//
+// Stop trusting a token this long before GitHub does, so one already in flight
+// cannot expire mid-request.
+const TOKEN_EXPIRY_MARGIN_MS = 60_000
+
+// Used when GitHub does not send `expires_at`. Comfortably inside the hour
+// GitHub actually grants.
+const TOKEN_FALLBACK_TTL_MS = 55 * 60_000
+
+type CachedToken = { token: string; expiresAt: number }
+
+const tokenCache = new Map<string, CachedToken>()
+
+// Mints in progress, so a burst of concurrent readers shares one exchange
+// instead of each racing to mint its own.
+const tokenRequests = new Map<string, Promise<string>>()
+
+export function tokenIsFresh(expiresAt: number, now: number): boolean {
+  return expiresAt - TOKEN_EXPIRY_MARGIN_MS > now
+}
+
+async function mintInstallationAccessToken(
+  installationId: string,
+): Promise<CachedToken> {
   const jwt = await createGitHubAppJwt()
   const response = await fetch(
     `https://api.github.com/app/installations/${installationId}/access_tokens`,
@@ -110,13 +137,51 @@ export async function createInstallationAccessToken(installationId: string) {
     throw new Error('Unable to create GitHub installation access token.')
   }
 
-  const token = (await response.json()) as { token?: string }
+  const token = (await response.json()) as {
+    token?: string
+    expires_at?: string
+  }
 
   if (!token.token) {
     throw new Error('GitHub did not return an installation token.')
   }
 
-  return token.token
+  const expiresAt = token.expires_at ? Date.parse(token.expires_at) : Number.NaN
+
+  return {
+    token: token.token,
+    expiresAt: Number.isNaN(expiresAt)
+      ? Date.now() + TOKEN_FALLBACK_TTL_MS
+      : expiresAt,
+  }
+}
+
+// Named for what callers want rather than what it does: it returns a usable
+// installation token, minting one only when there is no fresh one to hand.
+export async function createInstallationAccessToken(
+  installationId: string,
+): Promise<string> {
+  const cached = tokenCache.get(installationId)
+  if (cached && tokenIsFresh(cached.expiresAt, Date.now())) {
+    return cached.token
+  }
+
+  const pending = tokenRequests.get(installationId)
+  if (pending) return pending
+
+  const request = mintInstallationAccessToken(installationId)
+    .then((minted) => {
+      tokenCache.set(installationId, minted)
+      return minted.token
+    })
+    .finally(() => {
+      // Cleared either way: a failed mint must not pin every later caller to
+      // the same rejection.
+      tokenRequests.delete(installationId)
+    })
+
+  tokenRequests.set(installationId, request)
+  return request
 }
 
 // Uninstall the GitHub App from an account (removes the installation on

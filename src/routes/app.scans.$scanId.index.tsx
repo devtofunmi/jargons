@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from 'react'
 
 import { FindingCard } from '../components/issues/finding-card'
+import { ArchitectureMap } from '../components/scans/architecture-map'
 import { DetailPageSkeleton } from '../components/skeletons'
 import { timeAgo } from '../lib/format'
 import { getCodebaseScan } from '../server/scans'
@@ -127,6 +128,10 @@ function ScanDetailPage() {
               </span>
             ))}
         </div>
+      ) : null}
+
+      {scan.architecture ? (
+        <ArchitectureMap architecture={scan.architecture} />
       ) : null}
 
       <article className="app-card mt-6 p-5 sm:p-6">
