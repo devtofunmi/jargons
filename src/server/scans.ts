@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { SEVERITIES, severityRank } from '../lib/severity'
 import type { Severity } from '../lib/severity'
 import { loadDb } from '../db/load'
+import { isArchitectureMapEnabled } from './flags'
 import { getCurrentUserFromCookie } from './github-auth'
 import { summaryToArchitecture, summaryToCounts } from './scan-engine/summary'
 import type {
@@ -165,7 +166,11 @@ export const getCodebaseScan = createServerFn({ method: 'GET' })
       startedAt: scan.startedAt?.toISOString() ?? null,
       completedAt: scan.completedAt?.toISOString() ?? null,
       findings: summaryToFindings(scan.summary),
-      architecture: summaryToArchitecture(scan.summary),
+      // Gated on read as well as on write, so taking someone off the flag hides
+      // the map on scans that already stored one.
+      architecture: isArchitectureMapEnabled(currentUser.username)
+        ? summaryToArchitecture(scan.summary)
+        : null,
     }
   })
 
