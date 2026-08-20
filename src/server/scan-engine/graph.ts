@@ -122,36 +122,70 @@ function mostSevere(counts: SeverityCounts): Severity | null {
 // rather than dropping keeps every file accounted for: `src/server/llm` folding
 // into `src/server` loses a level of detail, not a number.
 //
-// Terminates because each merge strictly lowers the sum of module depths, and
-// depth-1 modules are never merged.
+// Modules are bucketed by depth once and each bucket is sorted once, so the
+// whole pass is O(n log n). The obvious version — rescan and re-sort every
+// module to pick the next single victim — is quadratic, and a repository with a
+// couple of thousand directories spent over half a minute of blocking CPU in
+// here before this was bucketed.
+//
+// Terminates because merging only ever moves a module to a strictly shallower
+// depth, and the walk goes deepest-first and never revisits a depth.
 function collapseToFit(
   accumulators: Map<string, Accumulator>,
   maxNodes: number,
 ): void {
-  while (accumulators.size > maxNodes) {
-    const mergeable = [...accumulators.keys()].filter(
-      (id) => depthOf(id) > 1 && parentOf(id) !== null,
-    )
-    if (mergeable.length === 0) return
+  if (accumulators.size <= maxNodes) return
 
-    // Deepest first, and among equals the least interesting: fewest findings,
-    // then fewest files, then path order for determinism.
-    const victim = mergeable.sort((a, b) => {
-      const left = accumulators.get(a)!
-      const right = accumulators.get(b)!
-      return (
-        depthOf(b) - depthOf(a) ||
-        totalFindings(left.counts) - totalFindings(right.counts) ||
-        left.files - right.files ||
-        a.localeCompare(b)
-      )
-    })[0]
+  const byDepth = new Map<number, string[]>()
+  let deepest = 0
 
-    const parent = parentOf(victim)!
-    const existing = accumulators.get(parent) ?? blank()
-    absorb(existing, accumulators.get(victim)!)
-    accumulators.set(parent, existing)
-    accumulators.delete(victim)
+  for (const id of accumulators.keys()) {
+    const depth = depthOf(id)
+    deepest = Math.max(deepest, depth)
+    const bucket = byDepth.get(depth) ?? []
+    bucket.push(id)
+    byDepth.set(depth, bucket)
+  }
+
+  // Depth 1 is the floor: a top-level module has no parent to fold into.
+  for (let depth = deepest; depth > 1; depth -= 1) {
+    if (accumulators.size <= maxNodes) return
+
+    // Least interesting first: fewest findings, then fewest files, then path
+    // order so the choice is never arbitrary.
+    const bucket = (byDepth.get(depth) ?? [])
+      .filter((id) => accumulators.has(id))
+      .sort((a, b) => {
+        const left = accumulators.get(a)!
+        const right = accumulators.get(b)!
+        return (
+          totalFindings(left.counts) - totalFindings(right.counts) ||
+          left.files - right.files ||
+          a.localeCompare(b)
+        )
+      })
+
+    for (const id of bucket) {
+      if (accumulators.size <= maxNodes) return
+
+      const parent = parentOf(id)
+      if (!parent) continue
+
+      const existing = accumulators.get(parent)
+      const target = existing ?? blank()
+      absorb(target, accumulators.get(id)!)
+      accumulators.set(parent, target)
+      accumulators.delete(id)
+
+      if (!existing) {
+        // A parent that did not exist as a module of its own joins its own
+        // bucket, so a later, shallower pass can fold it further if needed.
+        const parentDepth = depthOf(parent)
+        const parentBucket = byDepth.get(parentDepth) ?? []
+        parentBucket.push(parent)
+        byDepth.set(parentDepth, parentBucket)
+      }
+    }
   }
 }
 
