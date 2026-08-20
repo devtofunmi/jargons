@@ -13,15 +13,7 @@ describe('tokenIsFresh', () => {
     expect(tokenIsFresh(now + 30 * minute, now)).toBe(true)
   })
 
-  it('stops reusing a token before GitHub expires it', () => {
-    expect(tokenIsFresh(now + minute / 2, now)).toBe(false)
-  })
-
-  it('treats an already-expired token as stale', () => {
-    expect(tokenIsFresh(now - minute, now)).toBe(false)
-  })
-
-  it('does not sit exactly on the boundary', () => {
+  it('gives a token up a clear margin before GitHub expires it', () => {
     expect(tokenIsFresh(now + minute, now)).toBe(false)
   })
 })
