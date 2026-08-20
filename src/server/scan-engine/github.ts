@@ -133,7 +133,7 @@ export async function fetchFiles({
   repo,
   branch,
   paths,
-  maxChars,
+  maxChars = 0, // Default to 0 if not provided, ensuring it's always a number
 }: {
   installationId: string
   owner: string
@@ -165,7 +165,7 @@ export async function fetchFiles({
         if (content === null) continue
         results[index] = {
           path,
-          content: maxChars ? content.slice(0, maxChars) : content,
+          content: maxChars > 0 ? content.slice(0, maxChars) : content,
         }
       } catch {
         // Unreadable file: leave the slot empty and keep going.
