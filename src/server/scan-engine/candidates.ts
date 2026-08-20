@@ -1,5 +1,5 @@
-// Chooses the bounded set of files whose contents get read to build the import
-// graph.
+// The budgeting rules for one scan: which files get read, and how much of them
+// reaches the prompt.
 //
 // The graph wants to see as much of the repository as possible; reading a
 // repository does not come free. So the tree is ranked rather than truncated:
@@ -105,4 +105,38 @@ export function selectGraphCandidates(
     .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))
     .slice(0, Math.max(0, limit))
     .map((entry) => entry.path)
+}
+
+// Fit the chosen files into the prompt budget.
+//
+// Every file gets an equal share first, and only then is the unspent remainder
+// handed out — highest-ranked file first. Spending the budget strictly in rank
+// order instead would let one large file swallow all of it: the top-ranked file
+// is the most-imported one, which is exactly the kind of file that runs long, so
+// a single 50KB module could leave nineteen others entirely unread.
+export function withinCharBudget<T extends { path: string; content: string }>(
+  files: T[],
+  maxTotalChars: number,
+): Array<{ path: string; content: string }> {
+  if (files.length === 0 || maxTotalChars <= 0) return []
+
+  const share = Math.max(1, Math.floor(maxTotalChars / files.length))
+  const kept = files.map((file) => ({
+    path: file.path,
+    content: file.content.slice(0, share),
+  }))
+
+  let used = kept.reduce((total, file) => total + file.content.length, 0)
+
+  for (let index = 0; index < kept.length && used < maxTotalChars; index += 1) {
+    const full = files[index].content
+    const taken = kept[index].content.length
+    if (taken >= full.length) continue
+
+    const extra = Math.min(full.length - taken, maxTotalChars - used)
+    kept[index].content = full.slice(0, taken + extra)
+    used += extra
+  }
+
+  return kept.filter((file) => file.content.length > 0)
 }
