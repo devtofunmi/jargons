@@ -155,6 +155,12 @@ export const getCodebaseScan = createServerFn({ method: 'GET' })
     const scan = rows[0]
     const { counts, findingsCount } = summaryToCounts(scan.summary)
 
+    // Only display the architecture map if the user has the feature enabled.
+    const { isArchitectureMapEnabled } = await import('./feature-flags')
+    const architecture = isArchitectureMapEnabled(currentUser.workspace.id)
+      ? summaryToArchitecture(scan.summary)
+      : null
+
     return {
       id: scan.id,
       repository: `${scan.owner}/${scan.name}`,
@@ -165,7 +171,7 @@ export const getCodebaseScan = createServerFn({ method: 'GET' })
       startedAt: scan.startedAt?.toISOString() ?? null,
       completedAt: scan.completedAt?.toISOString() ?? null,
       findings: summaryToFindings(scan.summary),
-      architecture: summaryToArchitecture(scan.summary),
+      architecture,
     }
   })
 
