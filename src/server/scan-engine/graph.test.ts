@@ -72,18 +72,8 @@ describe('buildModuleGraph', () => {
     'src/db/load.ts',
   ]
 
-  // These fixtures are deliberately one or two files per directory, which the
-  // real defaults would fold away. Keeping every directory isolates the edge
-  // and severity behaviour under test; folding has its own block below.
-  const keepEveryDirectory = { minModuleFiles: 0 }
-
   it('counts every file in the repository, not only the ones read', () => {
-    const graph = buildModuleGraph({
-      paths,
-      edges: [],
-      findings: [],
-      ...keepEveryDirectory,
-    })
+    const graph = buildModuleGraph({ paths, edges: [], findings: [] })
 
     expect(graph.modules).toEqual([
       {
@@ -119,7 +109,6 @@ describe('buildModuleGraph', () => {
         { from: 'src/server/scans.ts', to: 'src/db/load.ts' },
       ],
       findings: [],
-      ...keepEveryDirectory,
     })
 
     expect(graph.edges).toEqual([
@@ -133,7 +122,6 @@ describe('buildModuleGraph', () => {
       paths,
       edges: [{ from: 'src/routes/index.tsx', to: 'src/routes/scans.tsx' }],
       findings: [],
-      ...keepEveryDirectory,
     })
 
     expect(graph.edges).toEqual([])
@@ -144,7 +132,6 @@ describe('buildModuleGraph', () => {
       paths: ['cmd/main.go', 'internal/db/store.go'],
       edges: [{ from: 'cmd/main.go', to: 'internal/db' }],
       findings: [],
-      ...keepEveryDirectory,
     })
 
     expect(graph.edges).toEqual([{ from: 'cmd', to: 'internal/db', weight: 1 }])
@@ -159,7 +146,6 @@ describe('buildModuleGraph', () => {
         { filePath: 'src/server/scans.ts', severity: 'critical' },
         { filePath: 'src/db/load.ts', severity: 'medium' },
       ],
-      ...keepEveryDirectory,
     })
 
     const server = graph.modules.find((m) => m.id === 'src/server')
@@ -178,7 +164,6 @@ describe('buildModuleGraph', () => {
       paths,
       edges: [],
       findings: [{ filePath: 'imagined/place.ts', severity: 'high' }],
-      ...keepEveryDirectory,
     })
 
     expect(graph.unattributedFindings).toBe(1)
@@ -197,7 +182,6 @@ describe('buildModuleGraph', () => {
       edges: [],
       findings: [],
       maxNodes: 1,
-      ...keepEveryDirectory,
     })
 
     expect(graph.modules).toHaveLength(1)
@@ -213,7 +197,6 @@ describe('buildModuleGraph', () => {
       edges: [{ from: 'src/web/page.ts', to: 'core/db/load.ts' }],
       findings: [],
       maxNodes: 2,
-      ...keepEveryDirectory,
     })
 
     // Three modules do not fit, so each side of the edge folds up one level.
@@ -231,92 +214,6 @@ describe('buildModuleGraph', () => {
 
     expect(graph.modules.map((m) => m.id)).toEqual(['c'])
     expect(graph.omittedModules).toBe(2)
-  })
-
-  it('never draws a container beside its own contents', () => {
-    // The shape a real scan produced: nested API route directories each got a
-    // box, so `pages/api` sat next to `pages/api/admin` as though they were
-    // siblings. A reader takes boxes at the same level to be peers.
-    const graph = buildModuleGraph({
-      paths: [
-        'pages/index.tsx',
-        'pages/about.tsx',
-        'pages/contact.tsx',
-        'pages/api/health.ts',
-        'pages/api/admin/list.ts',
-        'pages/api/admin/users/index.ts',
-      ],
-      edges: [],
-      findings: [],
-    })
-
-    expect(graph.modules.map((m) => m.id)).toEqual(['pages'])
-    expect(graph.modules[0].files).toBe(6)
-  })
-
-  it('folds a directory too small to be a module of its own', () => {
-    const graph = buildModuleGraph({
-      paths: [
-        'src/core/a.ts',
-        'src/core/b.ts',
-        'src/core/c.ts',
-        'src/odds/one.ts',
-      ],
-      edges: [],
-      findings: [],
-    })
-
-    // `src/odds` holds a single file, so it joins its parent rather than
-    // claiming a box; `src/core` clears the floor and keeps its own.
-    expect(graph.modules.map((m) => m.id)).toEqual(['src', 'src/core'])
-    expect(graph.modules.find((m) => m.id === 'src')?.files).toBe(1)
-  })
-
-  it('keeps findings and files when a small module folds away', () => {
-    const graph = buildModuleGraph({
-      paths: [
-        'src/tiny/one.ts',
-        'src/big/a.ts',
-        'src/big/b.ts',
-        'src/big/c.ts',
-      ],
-      edges: [],
-      findings: [{ filePath: 'src/tiny/one.ts', severity: 'critical' }],
-    })
-
-    const parent = graph.modules.find((m) => m.id === 'src')
-    expect(parent?.findings).toBe(1)
-    expect(parent?.topSeverity).toBe('critical')
-    expect(graph.modules.reduce((sum, m) => sum + m.files, 0)).toBe(4)
-  })
-
-  it('re-points edges onto the module a folded directory joined', () => {
-    const graph = buildModuleGraph({
-      paths: [
-        'app/page.tsx',
-        'app/other.tsx',
-        'app/third.tsx',
-        'app/util/one.ts',
-      ],
-      edges: [{ from: 'app/util/one.ts', to: 'app/page.tsx' }],
-      findings: [],
-    })
-
-    // Both ends now sit in `app`, so the arrow is internal and disappears
-    // rather than pointing at a module that is no longer drawn.
-    expect(graph.modules.map((m) => m.id)).toEqual(['app'])
-    expect(graph.edges).toEqual([])
-  })
-
-  it('leaves a top-level module alone however small it is', () => {
-    const graph = buildModuleGraph({
-      paths: ['a/one.ts', 'b/one.ts'],
-      edges: [],
-      findings: [],
-    })
-
-    // Nothing to fold into: these are already as shallow as a module gets.
-    expect(graph.modules.map((m) => m.id)).toEqual(['a', 'b'])
   })
 
   it('defaults to a cap a reader can actually take in', () => {
