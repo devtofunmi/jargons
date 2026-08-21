@@ -34,12 +34,6 @@ export type RunScanInput = {
   owner: string
   repo: string
   branch: string
-  // Whether to build the architecture map for this run. Off means the module
-  // graph and its labelling call are skipped entirely, so a scan for someone
-  // without the flag costs no extra LLM spend. The import graph itself is still
-  // built either way — it decides which files get scanned, which is an
-  // improvement everyone gets.
-  architectureMap: boolean
 }
 
 export async function runScan(input: RunScanInput): Promise<void> {
@@ -100,15 +94,13 @@ export async function runScan(input: RunScanInput): Promise<void> {
     }
 
     stage = 'architecture_map'
-    const mapped = input.architectureMap
-      ? await buildArchitecture({
-          repository,
-          paths,
-          edges,
-          findings: result.findings,
-          graphedFiles: heads.length,
-        })
-      : { architecture: null, usage: NO_USAGE }
+    const mapped = await buildArchitecture({
+      repository,
+      paths,
+      edges,
+      findings: result.findings,
+      graphedFiles: heads.length,
+    })
     usage = addUsage(usage, mapped.usage)
 
     stage = 'write_summary'

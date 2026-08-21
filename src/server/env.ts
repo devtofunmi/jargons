@@ -20,7 +20,6 @@ type OptionalEnvKey =
   | 'BACHS_API_KEY'
   | 'BACHS_API_BASE'
   | 'BACHS_PRO_PRODUCT_ID'
-  | 'ARCHITECTURE_MAP_LOGINS'
 
 export function getEnv(key: RequiredEnvKey) {
   const value = process.env[key]

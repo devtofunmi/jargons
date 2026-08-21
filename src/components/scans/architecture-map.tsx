@@ -90,12 +90,17 @@ export function ArchitectureMap({
           other lays out as one tall column, and without a ceiling that card
           would push the findings list off the page. */}
       <div className="custom-scrollbar mt-5 max-h-[70vh] overflow-auto">
+        {/* Scaled to the card rather than drawn at its natural pixel size: a
+            diagram you have to scroll around to assemble mentally is not doing
+            its job. `maxWidth` stops a small map being blown up past its own
+            size, so it only ever shrinks to fit. */}
         <svg
           role="img"
           aria-label="Module dependency map for this repository"
-          width={layout.width}
-          height={layout.height}
           viewBox={`0 0 ${layout.width} ${layout.height}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="h-auto w-full"
+          style={{ maxWidth: layout.width }}
         >
           <defs>
             <marker
