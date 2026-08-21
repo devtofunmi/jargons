@@ -13,12 +13,6 @@ import type { ImportEdge } from './imports'
 // diagram stops being read and starts being squinted at.
 export const MAX_MODULES = 24
 
-// A ceiling alone is not enough. A 71-file repository produced 22 boxes — just
-// under the cap, so nothing ever collapsed — and several of them held a single
-// file. A module that is one file is not a module, so anything below this folds
-// into its parent.
-export const MIN_MODULE_FILES = 3
-
 // Files at the repository root belong to a module too, and it needs a name.
 export const ROOT_MODULE = '.'
 
@@ -124,86 +118,6 @@ function mostSevere(counts: SeverityCounts): Severity | null {
   return present.sort((a, b) => severityRank(a) - severityRank(b))[0]
 }
 
-// Whether some directory above this one is also drawn as a module.
-function hasModuleAncestor(
-  id: string,
-  accumulators: Map<string, Accumulator>,
-): boolean {
-  let current = parentOf(id)
-  while (current) {
-    if (accumulators.has(current)) return true
-    current = parentOf(current)
-  }
-  return false
-}
-
-// Walk the modules deepest-first, merging each one into its parent. `shouldFold`
-// decides which; the bucketing is the same shape as collapseToFit so the pass
-// stays O(n log n), and the loop terminates because a merge only ever moves a
-// module to a strictly shallower depth.
-function foldDeepestFirst(
-  accumulators: Map<string, Accumulator>,
-  shouldFold: (id: string, entry: Accumulator) => boolean,
-): void {
-  const byDepth = new Map<number, string[]>()
-  let deepest = 0
-
-  for (const id of accumulators.keys()) {
-    const depth = depthOf(id)
-    deepest = Math.max(deepest, depth)
-    const bucket = byDepth.get(depth) ?? []
-    bucket.push(id)
-    byDepth.set(depth, bucket)
-  }
-
-  for (let depth = deepest; depth > 1; depth -= 1) {
-    const bucket = (byDepth.get(depth) ?? [])
-      .filter((id) => accumulators.has(id))
-      .sort((a, b) => a.localeCompare(b))
-
-    for (const id of bucket) {
-      const entry = accumulators.get(id)
-      if (!entry) continue
-
-      const parent = parentOf(id)
-      if (!parent || !shouldFold(id, entry)) continue
-
-      const existing = accumulators.get(parent)
-      const target = existing ?? blank()
-      absorb(target, entry)
-      accumulators.set(parent, target)
-      accumulators.delete(id)
-
-      if (!existing) {
-        const parentBucket = byDepth.get(depthOf(parent)) ?? []
-        parentBucket.push(parent)
-        byDepth.set(depthOf(parent), parentBucket)
-      }
-    }
-  }
-}
-
-// Fold away the modules that make a map harder to read rather than easier.
-//
-// Two kinds. A module whose ancestor is also a module is the worse one: drawing
-// `pages/api` beside `pages/api/admin` puts a container and its contents next to
-// each other as peers, which misrepresents the structure — a reader takes boxes
-// at the same level to be siblings. And a module holding one or two files is
-// not really a unit of architecture, just a directory that happened to exist.
-//
-// Both are about representation, not size, so they apply whether or not the map
-// is over its node cap.
-function foldNoisyModules(
-  accumulators: Map<string, Accumulator>,
-  minFiles: number,
-): void {
-  foldDeepestFirst(
-    accumulators,
-    (id, entry) =>
-      hasModuleAncestor(id, accumulators) || entry.files < minFiles,
-  )
-}
-
 // Merge the deepest modules into their parents until the map fits. Collapsing
 // rather than dropping keeps every file accounted for: `src/server/llm` folding
 // into `src/server` loses a level of detail, not a number.
@@ -291,7 +205,6 @@ export function buildModuleGraph({
   edges,
   findings,
   maxNodes = MAX_MODULES,
-  minModuleFiles = MIN_MODULE_FILES,
 }: {
   // Every code path in the repository, so file counts and structure are
   // complete even though edges only cover the files that were read.
@@ -299,10 +212,6 @@ export function buildModuleGraph({
   edges: ImportEdge[]
   findings: Array<{ filePath: string; severity: Severity }>
   maxNodes?: number
-  // Below this, a directory folds into its parent instead of getting a box of
-  // its own. Zero keeps every directory, which is mostly useful for isolating
-  // the other behaviour under test.
-  minModuleFiles?: number
 }): ModuleGraph {
   const fileSet = new Set(paths)
   const accumulators = new Map<string, Accumulator>()
@@ -325,9 +234,6 @@ export function buildModuleGraph({
     entry.counts[finding.severity] += 1
   }
 
-  // Readability first, then the hard cap. Folding usually gets the count well
-  // under the ceiling on its own.
-  foldNoisyModules(accumulators, minModuleFiles)
   collapseToFit(accumulators, maxNodes)
 
   // Only reachable when the repository has more top-level directories than the
