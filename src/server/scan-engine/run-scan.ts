@@ -34,6 +34,7 @@ export type RunScanInput = {
   owner: string
   repo: string
   branch: string
+  isArchitectureMapEnabled: boolean
 }
 
 export async function runScan(input: RunScanInput): Promise<void> {
@@ -93,15 +94,19 @@ export async function runScan(input: RunScanInput): Promise<void> {
       costUsd: result.costUsd,
     }
 
-    stage = 'architecture_map'
-    const mapped = await buildArchitecture({
-      repository,
-      paths,
-      edges,
-      findings: result.findings,
-      graphedFiles: heads.length,
-    })
-    usage = addUsage(usage, mapped.usage)
+    let architecture: ArchitectureSummary | null = null
+    if (input.isArchitectureMapEnabled) {
+      stage = 'architecture_map'
+      const mapped = await buildArchitecture({
+        repository,
+        paths,
+        edges,
+        findings: result.findings,
+        graphedFiles: heads.length,
+      })
+      architecture = mapped.architecture
+      usage = addUsage(usage, mapped.usage)
+    }
 
     stage = 'write_summary'
     const counts = countBySeverity(result.findings)
@@ -113,7 +118,7 @@ export async function runScan(input: RunScanInput): Promise<void> {
         counts,
         scannedFiles: files.length,
         model: result.model,
-        architecture: mapped.architecture,
+        architecture,
       },
       usage,
     )
@@ -127,7 +132,7 @@ export async function runScan(input: RunScanInput): Promise<void> {
       importEdges: edges.length,
       scannedFiles: files.length,
       findingsCount: result.findings.length,
-      modules: mapped.architecture?.modules.length ?? 0,
+      modules: architecture?.modules.length ?? 0,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Scan run failed'
