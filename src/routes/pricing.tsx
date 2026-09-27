@@ -94,11 +94,10 @@ function PricingPage() {
               Try Jargons on a real pull request or scan.
             </p>
             <ul className="mt-6 flex-1 space-y-3 text-sm text-zinc-400">
-              <Feature>
-                {FREE_RUN_LIMIT} agent run per month (review, scan, or fix PR)
-              </Feature>
-              <Feature>Automatic PR reviews with findings</Feature>
+              <Feature>{FREE_RUN_LIMIT} AI code review run a month</Feature>
+              <Feature>Automatic pull request reviews</Feature>
               <Feature>Codebase scans</Feature>
+              <Feature>Security checks</Feature>
               <Feature>One-click fix PRs</Feature>
             </ul>
             {plan === 'free' && signedIn ? (
@@ -191,13 +190,14 @@ function PaidPlanCard({
       <ul className="mt-6 flex-1 space-y-3 text-sm text-zinc-300">
         <Feature>
           <span className="font-semibold text-white">
-            {details.runLimit} agent runs per month
+            {details.runLimit} AI code review runs a month
           </span>
         </Feature>
-        <Feature>Automatic PR reviews with findings</Feature>
-        <Feature>Codebase scans across your repos</Feature>
+        <Feature>Automatic pull request reviews</Feature>
+        <Feature>Codebase scans</Feature>
+        <Feature>Security checks</Feature>
         <Feature>One-click fix PRs</Feature>
-        <Feature>Cancel anytime</Feature>
+        <Feature>Billed monthly, cancel anytime</Feature>
       </ul>
 
       {currentPlan === id ? (
