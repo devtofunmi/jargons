@@ -6,10 +6,15 @@ import { AuthShell } from '../components/auth-shell'
 import { GitHubAuthButton } from '../components/github-auth-button'
 
 export const Route = createFileRoute('/auth/sign-up')({
+  validateSearch: (search): { next?: string } => ({
+    next: typeof search.next === 'string' ? search.next : undefined,
+  }),
   component: SignUpPage,
 })
 
 function SignUpPage() {
+  const { next } = Route.useSearch()
+
   return (
     <AuthShell
       eyebrow="create workspace"
@@ -28,7 +33,7 @@ function SignUpPage() {
           repositories.
         </p>
 
-        <GitHubAuthButton label="Sign up with GitHub" />
+        <GitHubAuthButton label="Sign up with GitHub" next={next} />
 
         <div className="mt-5 grid gap-3">
           <SignupBenefit
@@ -53,6 +58,7 @@ function SignUpPage() {
           <Link
             className="text-amber-300 hover:text-amber-200"
             to="/auth/sign-in"
+            search={{ next }}
           >
             Sign in
           </Link>

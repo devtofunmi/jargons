@@ -1,13 +1,22 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowRight, Check, LoaderCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { OwlMark } from '../components/owl-mark'
-import { FREE_RUN_LIMIT, PAID_PLAN_IDS, PAID_PLANS } from '../lib/plans'
+import {
+  FREE_RUN_LIMIT,
+  isPaidPlan,
+  PAID_PLAN_IDS,
+  PAID_PLANS,
+} from '../lib/plans'
 import type { PaidPlan, Plan } from '../lib/plans'
 import { getBilling } from '../server/billing'
 
 export const Route = createFileRoute('/pricing')({
+  // `?checkout=<plan>` resumes a subscribe click that had to sign in first.
+  validateSearch: (search): { checkout?: PaidPlan } => ({
+    checkout: isPaidPlan(search.checkout) ? search.checkout : undefined,
+  }),
   loader: async () => {
     const billing = await getBilling()
     return {
@@ -18,14 +27,33 @@ export const Route = createFileRoute('/pricing')({
   component: PricingPage,
 })
 
+// Sign in, then come back here and go straight into `target`'s checkout.
+function signInThenCheckout(target: PaidPlan) {
+  const next = `/pricing?checkout=${target}`
+  window.location.assign(`/auth/sign-in?next=${encodeURIComponent(next)}`)
+}
+
 function PricingPage() {
   const { signedIn, plan } = Route.useLoaderData()
+  const { checkout } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const [busy, setBusy] = useState<PaidPlan | null>(null)
   const [error, setError] = useState<PaidPlan | null>(null)
+  const resumed = useRef(false)
+
+  useEffect(() => {
+    if (!checkout || resumed.current) return
+    resumed.current = true
+    // Drop the param first so Back from the checkout doesn't restart it.
+    void navigate({ search: {}, replace: true })
+    if (signedIn && plan === 'free') {
+      void subscribe(checkout)
+    }
+  }, [checkout, signedIn, plan])
 
   async function subscribe(target: PaidPlan) {
     if (!signedIn) {
-      window.location.assign('/auth/sign-in')
+      signInThenCheckout(target)
       return
     }
     setBusy(target)
@@ -37,7 +65,7 @@ function PricingPage() {
         body: JSON.stringify({ plan: target }),
       })
       if (res.status === 401) {
-        window.location.assign('/auth/sign-in')
+        signInThenCheckout(target)
         return
       }
       const data = (await res.json().catch(() => ({}))) as { url?: string }

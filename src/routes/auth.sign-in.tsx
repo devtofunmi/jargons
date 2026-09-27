@@ -6,14 +6,15 @@ import { AuthShell } from '../components/auth-shell'
 import { GitHubAuthButton } from '../components/github-auth-button'
 
 export const Route = createFileRoute('/auth/sign-in')({
-  validateSearch: (search): { error?: string } => ({
+  validateSearch: (search): { error?: string; next?: string } => ({
     error: typeof search.error === 'string' ? search.error : undefined,
+    next: typeof search.next === 'string' ? search.next : undefined,
   }),
   component: SignInPage,
 })
 
 function SignInPage() {
-  const { error } = Route.useSearch()
+  const { error, next } = Route.useSearch()
 
   return (
     <AuthShell
@@ -32,7 +33,7 @@ function SignInPage() {
           Continue with the GitHub account connected to your Jargons workspace.
         </p>
 
-        <GitHubAuthButton label="Continue with GitHub" />
+        <GitHubAuthButton label="Continue with GitHub" next={next} />
 
         {error ? (
           <p className="mt-4 rounded-2xl border border-red-300/15 bg-red-300/[0.06] px-4 py-3 text-sm leading-6 text-red-200">
@@ -45,6 +46,7 @@ function SignInPage() {
           <Link
             className="text-amber-300 hover:text-amber-200"
             to="/auth/sign-up"
+            search={{ next }}
           >
             Create an account
           </Link>

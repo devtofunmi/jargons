@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { loadDb } from '../db/load'
+import { DEFAULT_NEXT, safeNextPath } from '../lib/safe-next'
 import { getEnv, getOptionalEnv } from './env'
 
 type GitHubTokenResponse = {
@@ -23,6 +24,8 @@ const githubAuthorizeUrl = 'https://github.com/login/oauth/authorize'
 const githubTokenUrl = 'https://github.com/login/oauth/access_token'
 const githubUserUrl = 'https://api.github.com/user'
 const sessionCookieName = 'jargons_session'
+// Where to land after the GitHub round trip, set when sign-in starts.
+const signInNextCookieName = 'jargons_sign_in_next'
 
 export type CurrentUser = {
   id: string
@@ -268,6 +271,38 @@ export async function deleteSessionCookie() {
   const { deleteCookie } = await import('@tanstack/react-start/server')
 
   deleteCookie(sessionCookieName, { path: '/' })
+}
+
+// Remember where to send the user once GitHub sign-in completes. Lax is enough:
+// the cookie only has to survive the top-level redirect back from GitHub.
+export async function setSignInNext(next: unknown): Promise<void> {
+  const path = safeNextPath(next)
+  const { setCookie, deleteCookie } =
+    await import('@tanstack/react-start/server')
+
+  if (path === DEFAULT_NEXT) {
+    deleteCookie(signInNextCookieName, { path: '/' })
+    return
+  }
+
+  setCookie(signInNextCookieName, path, {
+    maxAge: 60 * 10,
+    httpOnly: true,
+    path: '/',
+    sameSite: 'lax',
+    secure: getOptionalEnv('NODE_ENV', 'development') === 'production',
+  })
+}
+
+// Read and clear the post-sign-in destination (the dashboard when unset).
+export async function consumeSignInNext(): Promise<string> {
+  const { getCookie, deleteCookie } =
+    await import('@tanstack/react-start/server')
+  const path = safeNextPath(getCookie(signInNextCookieName))
+
+  deleteCookie(signInNextCookieName, { path: '/' })
+
+  return path
 }
 
 export async function exchangeGitHubCode(code: string) {
