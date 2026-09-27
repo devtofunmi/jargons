@@ -10,7 +10,7 @@ export function UpgradeButton({ className }: { className?: string }) {
       to="/pricing"
       className={className ?? 'button-primary shrink-0 justify-center'}
     >
-      Upgrade to Pro
+      Upgrade plan
       <ArrowRight className="size-4" />
     </Link>
   )
