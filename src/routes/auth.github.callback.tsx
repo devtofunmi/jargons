@@ -1,6 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { completeGitHubAuthWithCode } from '../server/github-auth'
+import {
+  completeGitHubAuthWithCode,
+  consumeSignInNext,
+} from '../server/github-auth'
 
 export const Route = createFileRoute('/auth/github/callback')({
   server: {
@@ -19,7 +22,7 @@ export const Route = createFileRoute('/auth/github/callback')({
         try {
           await completeGitHubAuthWithCode(code)
 
-          return redirectTo(new URL('/app', url.origin))
+          return redirectTo(new URL(await consumeSignInNext(), url.origin))
         } catch (error) {
           console.error('GitHub auth callback failed', error)
 
