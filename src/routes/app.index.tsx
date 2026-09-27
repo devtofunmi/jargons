@@ -84,8 +84,8 @@ function Dashboard() {
             </p>
             <p className="mt-1 text-sm leading-6 text-zinc-500">
               {billing.canRun
-                ? `${billing.runsUsed}/${billing.limit} runs used this month. Upgrade to Pro for more each month.`
-                : 'Upgrade to Jargons Pro for more runs each month.'}
+                ? `${billing.runsUsed}/${billing.limit} runs used this month. Upgrade for more each month.`
+                : 'Upgrade your plan for more runs each month.'}
             </p>
           </div>
           <UpgradeButton />

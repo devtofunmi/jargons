@@ -1,10 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { isPaidPlan } from '../lib/plans'
 import { isAdmin, setWorkspacePlanAsAdmin } from '../server/admin'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
-// Admin-only: manually set a workspace's plan (free ↔ pro). Re-checks the admin
-// on the server; the UI gate is never trusted.
+// Admin-only: manually set a workspace's plan (free or any paid tier).
+// Re-checks the admin on the server; the UI gate is never trusted.
 export const Route = createFileRoute('/api/admin/set-plan')({
   server: {
     handlers: {
@@ -24,7 +25,7 @@ export const Route = createFileRoute('/api/admin/set-plan')({
         const workspaceId =
           typeof body.workspaceId === 'string' ? body.workspaceId : ''
         const plan =
-          body.plan === 'pro' ? 'pro' : body.plan === 'free' ? 'free' : null
+          body.plan === 'free' || isPaidPlan(body.plan) ? body.plan : null
 
         if (!workspaceId || !plan) {
           return json({ error: 'workspaceId and plan are required' }, 400)

@@ -80,13 +80,14 @@ export const workspaces = pgTable('workspaces', {
   ownerId: uuid('owner_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  // Billing plan: 'free' (one lifetime agent run) or 'pro' (unlimited).
+  // Billing plan: 'free' (one run a month) or a paid tier with a monthly run
+  // quota: 'pro', 'team' or 'business' (see src/lib/plans.ts).
   plan: text('plan').notNull().default('free'),
   // Lifetime count of agent runs (reviews + scans) started by this workspace,
   // incremented when a run is created. Drives the free-tier limit.
   runsUsed: integer('runs_used').notNull().default(0),
   // Start of the current run-counting window. runsUsed resets to 0 when the
-  // calendar month rolls over past this, giving Pro a monthly quota.
+  // calendar month rolls over past this, giving paid plans a monthly quota.
   runsPeriodStart: timestamp('runs_period_start', { withTimezone: true }),
   // One-time extra runs an operator has granted for the current window. Adds to
   // the plan's run limit and resets to 0 with runsUsed when the month rolls

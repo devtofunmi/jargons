@@ -9,7 +9,9 @@ type BachsEvent = {
   type?: string
   data?: {
     subscription_id?: string
+    product_id?: string
     customer?: { customer_id?: string }
+    metadata?: { plan?: unknown }
   }
 }
 
@@ -83,8 +85,12 @@ async function handleEvent(event: BachsEvent): Promise<void> {
     return // events we don't map (e.g. collection.succeeded) are ignored
   }
 
-  const { workspaceByBachsCustomer, markWorkspacePro, downgradeWorkspace } =
-    await import('../server/billing')
+  const {
+    workspaceByBachsCustomer,
+    markWorkspacePaid,
+    downgradeWorkspace,
+    planForSubscription,
+  } = await import('../server/billing')
 
   const workspaceId = await workspaceByBachsCustomer(customerId)
   if (!workspaceId) {
@@ -92,12 +98,24 @@ async function handleEvent(event: BachsEvent): Promise<void> {
   }
 
   if (event.type === 'customer.subscription.created') {
-    await markWorkspacePro(workspaceId, {
+    const matched = planForSubscription({
+      productId: event.data?.product_id,
+      metadataPlan: event.data?.metadata?.plan,
+    })
+    // The customer paid, so never leave them on free: an unrecognised product
+    // falls back to Pro, logged so the product mapping can be fixed.
+    if (!matched) {
+      console.warn(
+        `[billing] subscription for workspace ${workspaceId} matched no plan; defaulting to pro`,
+      )
+    }
+    const plan = matched ?? 'pro'
+    await markWorkspacePaid(workspaceId, plan, {
       customerId,
       subscriptionId: event.data?.subscription_id,
     })
     console.log(
-      `[billing] subscription created → workspace ${workspaceId} is pro`,
+      `[billing] subscription created → workspace ${workspaceId} is ${plan}`,
     )
   } else if (event.type === 'customer.subscription.deleted') {
     await downgradeWorkspace(workspaceId)

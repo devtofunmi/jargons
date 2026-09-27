@@ -3,6 +3,8 @@ import { Users as UsersIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { timeAgo } from '../../lib/format'
+import { PAID_PLAN_IDS, PAID_PLANS } from '../../lib/plans'
+import type { Plan } from '../../lib/plans'
 import type { AdminUserRow } from '../../server/admin'
 
 // Sticky header cells carry the card's own background so rows don't show
@@ -11,7 +13,7 @@ import type { AdminUserRow } from '../../server/admin'
 const TH =
   'sticky top-0 z-10 bg-[#0d0d10] py-2 font-normal shadow-[inset_0_-1px_0_rgba(255,255,255,0.07)]'
 
-// Every user with their workspace plan + usage, and an inline plan toggle.
+// Every user with their workspace plan + usage, and an inline plan picker.
 export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
   return (
     <article className="app-card mt-6 p-5 sm:p-6">
@@ -95,7 +97,7 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
                       {user.plan === 'free' ? (
                         <RunsGrant workspaceId={user.workspaceId} />
                       ) : null}
-                      <PlanToggle
+                      <PlanSelect
                         workspaceId={user.workspaceId}
                         plan={user.plan}
                       />
@@ -115,11 +117,11 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
   )
 }
 
-function PlanBadge({ plan }: { plan: 'free' | 'pro' | null }) {
-  if (plan === 'pro') {
+function PlanBadge({ plan }: { plan: Plan | null }) {
+  if (plan && plan !== 'free') {
     return (
       <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/[0.1] px-2.5 py-1 font-mono text-[10px] uppercase text-amber-300">
-        pro
+        {plan}
       </span>
     )
   }
@@ -130,18 +132,18 @@ function PlanBadge({ plan }: { plan: 'free' | 'pro' | null }) {
   )
 }
 
-function PlanToggle({
+function PlanSelect({
   workspaceId,
   plan,
 }: {
   workspaceId: string
-  plan: 'free' | 'pro'
+  plan: Plan
 }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
-  const next = plan === 'pro' ? 'free' : 'pro'
 
-  async function toggle() {
+  async function change(next: Plan) {
+    if (next === plan) return
     setBusy(true)
     try {
       const res = await fetch('/api/admin/set-plan', {
@@ -153,21 +155,27 @@ function PlanToggle({
         await router.invalidate()
       }
     } catch {
-      // ignore — the button re-enables and the operator can retry
+      // ignore — the select re-enables and the operator can retry
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <button
-      type="button"
-      className="rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-300 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+    <select
+      aria-label="Plan"
+      className="rounded-lg border border-white/[0.1] bg-[#0d0d10] px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-300 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
       disabled={busy}
-      onClick={() => void toggle()}
+      value={plan}
+      onChange={(event) => void change(event.target.value as Plan)}
     >
-      {busy ? '…' : next === 'pro' ? 'Make Pro' : 'Make Free'}
-    </button>
+      <option value="free">Free</option>
+      {PAID_PLAN_IDS.map((id) => (
+        <option key={id} value={id}>
+          {PAID_PLANS[id].name}
+        </option>
+      ))}
+    </select>
   )
 }
 

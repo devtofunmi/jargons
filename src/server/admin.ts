@@ -6,7 +6,8 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { loadDb } from '../db/load'
-import { PRO_PRICE_USD } from '../lib/plans'
+import { PAID_PLANS, parsePlan } from '../lib/plans'
+import type { Plan } from '../lib/plans'
 import { getCurrentUserFromCookie } from './github-auth'
 import type { CurrentUser } from './github-auth'
 
@@ -57,8 +58,8 @@ export type AdminOverview = {
     // else: workspaces see their run quota, not what a run costs to serve.
     llmTokens: number
     llmCostUsd: number
-    // Estimated spend per agent run, the number to read against the ~$0.20 of
-    // revenue a Pro run earns. Null until there has been at least one run.
+    // Estimated spend per agent run, the number to read against the $0.18-0.30
+    // of revenue a paid run earns. Null until there has been at least one run.
     costPerRunUsd: number | null
   }
   trends: Array<{
@@ -109,6 +110,8 @@ export const getAdminOverview = createServerFn({ method: 'GET' }).handler(
             (select count(*)::int from users) as users,
             (select count(*)::int from workspaces) as workspaces,
             (select count(*)::int from workspaces where plan = 'pro') as pro,
+            (select count(*)::int from workspaces where plan = 'team') as team,
+            (select count(*)::int from workspaces where plan = 'business') as business,
             (select count(*)::int from review_runs) as reviews,
             (select count(*)::int from codebase_scans) as scans,
             (select count(*)::int from findings) as findings,
@@ -157,7 +160,12 @@ export const getAdminOverview = createServerFn({ method: 'GET' }).handler(
     ])
 
     const t = totals[0]
-    const pro = Number(t.pro ?? 0)
+    const byPlan = {
+      pro: Number(t.pro ?? 0),
+      team: Number(t.team ?? 0),
+      business: Number(t.business ?? 0),
+    }
+    const pro = byPlan.pro + byPlan.team + byPlan.business
     const workspaces = Number(t.workspaces ?? 0)
     // sum() over bigint comes back as a string from postgres-js.
     const llmTokens = Number(t.llm_tokens ?? 0)
@@ -178,7 +186,10 @@ export const getAdminOverview = createServerFn({ method: 'GET' }).handler(
         workspaces,
         pro,
         free: Math.max(0, workspaces - pro),
-        mrrUsd: pro * PRO_PRICE_USD,
+        mrrUsd:
+          byPlan.pro * PAID_PLANS.pro.priceUsd +
+          byPlan.team * PAID_PLANS.team.priceUsd +
+          byPlan.business * PAID_PLANS.business.priceUsd,
         reviews,
         scans,
         findings: Number(t.findings ?? 0),
@@ -221,7 +232,7 @@ export type AdminUserRow = {
   createdAt: string
   workspaceId: string | null
   workspaceName: string | null
-  plan: 'free' | 'pro' | null
+  plan: Plan | null
   runsUsed: number
   bonusRuns: number
   repos: number
@@ -259,7 +270,7 @@ export const getAdminUsers = createServerFn({ method: 'GET' }).handler(
       createdAt: new Date(r.created_at).toISOString(),
       workspaceId: r.workspace_id ? String(r.workspace_id) : null,
       workspaceName: r.workspace_name ? String(r.workspace_name) : null,
-      plan: r.plan === 'pro' ? 'pro' : r.workspace_id ? 'free' : null,
+      plan: r.workspace_id ? parsePlan(r.plan) : null,
       runsUsed: Number(r.runs_used ?? 0),
       bonusRuns: Number(r.bonus_runs ?? 0),
       repos: Number(r.repos ?? 0),
@@ -273,13 +284,13 @@ export const getAdminUsers = createServerFn({ method: 'GET' }).handler(
 // dispatch live together; the API route calls this after re-checking the admin.
 export async function setWorkspacePlanAsAdmin(
   workspaceId: string,
-  plan: 'free' | 'pro',
+  plan: Plan,
 ): Promise<void> {
-  const { markWorkspacePro, downgradeWorkspace } = await import('./billing')
-  if (plan === 'pro') {
-    await markWorkspacePro(workspaceId)
-  } else {
+  const { markWorkspacePaid, downgradeWorkspace } = await import('./billing')
+  if (plan === 'free') {
     await downgradeWorkspace(workspaceId)
+  } else {
+    await markWorkspacePaid(workspaceId, plan)
   }
 }
 
