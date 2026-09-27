@@ -35,13 +35,13 @@ export function AdminStats({ totals }: { totals: AdminOverview['totals'] }) {
     {
       label: 'workspaces',
       value: String(totals.workspaces),
-      sub: `${totals.pro} pro · ${totals.free} free`,
+      sub: `${totals.pro} paid · ${totals.free} free`,
       icon: LayoutDashboard,
     },
     {
       label: 'MRR',
       value: `$${totals.mrrUsd.toLocaleString()}`,
-      sub: `${totals.pro} × $15`,
+      sub: `from ${totals.pro} paid`,
       icon: DollarSign,
     },
     { label: 'reviews', value: String(totals.reviews), icon: BadgeCheck },
@@ -67,8 +67,9 @@ export function AdminStats({ totals }: { totals: AdminOverview['totals'] }) {
     {
       label: 'cost / run',
       value: totals.costPerRunUsd === null ? '—' : usd(totals.costPerRunUsd),
-      // The number this is meant to be read against: a Pro run earns ~$0.20.
-      sub: 'vs ~$0.20 earned',
+      // The number this is meant to be read against: paid tiers earn $0.18
+      // (Business) to $0.30 (Pro) per run.
+      sub: 'vs $0.18–0.30 earned',
       icon: DollarSign,
     },
   ]
