@@ -286,7 +286,7 @@ export async function setSignInNext(next: unknown): Promise<void> {
   }
 
   setCookie(signInNextCookieName, path, {
-    maxAge: 60 * 10,
+    maxAge: 60,
     httpOnly: true,
     path: '/',
     sameSite: 'lax',
