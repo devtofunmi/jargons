@@ -102,14 +102,15 @@ async function handleEvent(event: BachsEvent): Promise<void> {
       productId: event.data?.product_id,
       metadataPlan: event.data?.metadata?.plan,
     })
-    // The customer paid, so never leave them on free: an unrecognised product
-    // falls back to Pro, logged so the product mapping can be fixed.
+    // If no plan is matched, it indicates an unrecognised product configuration.
+    // This should be treated as an error to prevent inconsistent state.
     if (!matched) {
-      console.warn(
-        `[billing] subscription for workspace ${workspaceId} matched no plan; defaulting to pro`,
+      console.error(
+        `[billing] subscription for workspace ${workspaceId} matched no known plan for product ID ${event.data?.product_id} and metadata plan ${event.data?.metadata?.plan}; failing webhook processing.`,
       )
+      throw new Error('Unrecognized subscription plan')
     }
-    const plan = matched ?? 'pro'
+    const plan = matched
     await markWorkspacePaid(workspaceId, plan, {
       customerId,
       subscriptionId: event.data?.subscription_id,
