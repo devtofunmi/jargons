@@ -29,6 +29,8 @@ export const Route = createFileRoute('/pricing')({
 
 // Sign in, then come back here and go straight into `target`'s checkout.
 function signInThenCheckout(target: PaidPlan) {
+  // The `target` parameter is already validated by `isPaidPlan` in `validateSearch`
+  // and is one of the known `PaidPlan` IDs. This ensures it's a controlled value.
   const next = `/pricing?checkout=${target}`
   window.location.assign(`/auth/sign-in?next=${encodeURIComponent(next)}`)
 }
