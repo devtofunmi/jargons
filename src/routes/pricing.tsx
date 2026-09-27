@@ -101,7 +101,7 @@ function PricingPage() {
               <Feature>One-click fix PRs</Feature>
             </ul>
             {plan === 'free' && signedIn ? (
-              <CurrentPlan />
+              <CurrentPlan currentPlan={plan} />
             ) : (
               <Link
                 className="button-secondary mt-7 w-full justify-center"
@@ -201,7 +201,7 @@ function PaidPlanCard({
       </ul>
 
       {currentPlan === id ? (
-        <CurrentPlan paid />
+        <CurrentPlan currentPlan={currentPlan} paid />
       ) : currentPlan !== 'free' ? (
         <span className="mt-7 inline-flex w-full items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-zinc-500">
           You&apos;re on {PAID_PLANS[currentPlan].name}
@@ -242,11 +242,11 @@ function PaidPlanCard({
   )
 }
 
-function CurrentPlan({ paid = false }: { paid?: boolean }) {
+function CurrentPlan({ paid = false, currentPlan }: { paid?: boolean; currentPlan: Plan }) {
   return paid ? (
     <span className="mt-7 inline-flex w-full items-center justify-center rounded-2xl border border-emerald-300/25 bg-emerald-300/[0.08] px-4 py-3 text-sm text-emerald-300">
       <Check className="mr-2 size-4" />
-      Your current plan
+      You&apos;re on {PAID_PLANS[currentPlan as PaidPlan].name}
     </span>
   ) : (
     <span className="mt-7 inline-flex w-full items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-zinc-500">
