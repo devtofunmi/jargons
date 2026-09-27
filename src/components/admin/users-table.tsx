@@ -121,7 +121,7 @@ function PlanBadge({ plan }: { plan: Plan | null }) {
   if (plan && plan !== 'free') {
     return (
       <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/[0.1] px-2.5 py-1 font-mono text-[10px] uppercase text-amber-300">
-        {plan}
+        {PAID_PLANS[plan].name}
       </span>
     )
   }
