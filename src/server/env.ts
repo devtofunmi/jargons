@@ -20,6 +20,8 @@ type OptionalEnvKey =
   | 'BACHS_API_KEY'
   | 'BACHS_API_BASE'
   | 'BACHS_PRO_PRODUCT_ID'
+  | 'BACHS_TEAM_PRODUCT_ID'
+  | 'BACHS_BUSINESS_PRODUCT_ID'
 
 export function getEnv(key: RequiredEnvKey) {
   const value = process.env[key]

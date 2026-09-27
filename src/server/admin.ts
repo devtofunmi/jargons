@@ -275,9 +275,9 @@ export async function setWorkspacePlanAsAdmin(
   workspaceId: string,
   plan: 'free' | 'pro',
 ): Promise<void> {
-  const { markWorkspacePro, downgradeWorkspace } = await import('./billing')
+  const { markWorkspacePaid, downgradeWorkspace } = await import('./billing')
   if (plan === 'pro') {
-    await markWorkspacePro(workspaceId)
+    await markWorkspacePaid(workspaceId, 'pro')
   } else {
     await downgradeWorkspace(workspaceId)
   }

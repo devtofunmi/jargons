@@ -1,7 +1,8 @@
-// Freemium gating + Bachs billing. A free workspace gets one lifetime agent run
+// Freemium gating + Bachs billing. A free workspace gets one agent run a month
 // (a pull request review OR a codebase scan); after that it must upgrade to a
-// paid 'pro' plan. Payment runs through Bachs (bachs.io): the app creates a
-// checkout, and a signed webhook flips the workspace to 'pro'.
+// paid plan (Pro, Team or Business). Payment runs through Bachs (bachs.io): the
+// app creates a checkout for the chosen plan's product, and a signed webhook
+// moves the workspace onto that plan.
 
 import { createServerFn } from '@tanstack/react-start'
 
@@ -9,16 +10,20 @@ import { loadDb } from '../db/load'
 import {
   FREE_RUN_LIMIT,
   isStalePeriod,
+  PAID_PLAN_IDS,
+  parsePlan,
+  planRunLimit,
   PRO_PRICE_USD,
   PRO_RUN_LIMIT,
 } from '../lib/plans'
+import type { PaidPlan, Plan } from '../lib/plans'
 import { getOptionalEnv } from './env'
 import { getCurrentUserFromCookie } from './github-auth'
 
 export { FREE_RUN_LIMIT, PRO_PRICE_USD, PRO_RUN_LIMIT }
 
 export type WorkspaceBilling = {
-  plan: 'free' | 'pro'
+  plan: Plan
   runsUsed: number
   limit: number
   canRun: boolean
@@ -47,13 +52,13 @@ export async function getWorkspaceBilling(
     .where(eq(workspaces.id, workspaceId))
     .limit(1)
 
-  const plan = rows[0]?.plan === 'pro' ? 'pro' : 'free'
+  const plan = parsePlan(rows[0]?.plan)
   // Runs reset each calendar month; a stale period reads as zero used, and any
   // operator-granted bonus is spent (it never carries into a new window).
   const stale = isStalePeriod(rows[0]?.runsPeriodStart ?? null, new Date())
   const runsUsed = stale ? 0 : (rows[0]?.runsUsed ?? 0)
   const bonusRuns = stale ? 0 : (rows[0]?.bonusRuns ?? 0)
-  const limit = (plan === 'pro' ? PRO_RUN_LIMIT : FREE_RUN_LIMIT) + bonusRuns
+  const limit = planRunLimit(plan) + bonusRuns
 
   return {
     plan,
@@ -120,11 +125,12 @@ export const getBilling = createServerFn({ method: 'GET' }).handler(
   },
 )
 
-// Unlock the Pro monthly run quota after a successful subscription, storing the
-// Bachs ids
-// so later webhook events (e.g. cancellation) map back to this workspace.
-export async function markWorkspacePro(
+// Unlock a paid plan's monthly run quota after a successful subscription,
+// storing the Bachs ids so later webhook events (e.g. cancellation) map back to
+// this workspace.
+export async function markWorkspacePaid(
   workspaceId: string,
+  plan: PaidPlan,
   ids?: { customerId?: string; subscriptionId?: string },
 ): Promise<void> {
   const { eq, db, workspaces } = await loadDb()
@@ -132,7 +138,7 @@ export async function markWorkspacePro(
   await db
     .update(workspaces)
     .set({
-      plan: 'pro',
+      plan,
       ...(ids?.customerId ? { bachsCustomerId: ids.customerId } : {}),
       ...(ids?.subscriptionId
         ? { bachsSubscriptionId: ids.subscriptionId }
@@ -168,6 +174,32 @@ export async function workspaceByBachsCustomer(
 }
 
 // --- Bachs API ---
+
+const PRODUCT_ENV = {
+  pro: 'BACHS_PRO_PRODUCT_ID',
+  team: 'BACHS_TEAM_PRODUCT_ID',
+  business: 'BACHS_BUSINESS_PRODUCT_ID',
+} as const satisfies Record<PaidPlan, string>
+
+export function bachsProductId(plan: PaidPlan): string {
+  return getOptionalEnv(PRODUCT_ENV[plan], '')
+}
+
+// Resolve which plan a subscription event is for: by its product id first, then
+// by the plan we stamped on the checkout metadata. Null when neither matches.
+export function planForSubscription(event: {
+  productId?: string
+  metadataPlan?: unknown
+}): PaidPlan | null {
+  if (event.productId) {
+    const byProduct = PAID_PLAN_IDS.find(
+      (plan) => bachsProductId(plan) === event.productId,
+    )
+    if (byProduct) return byProduct
+  }
+  const byMetadata = parsePlan(event.metadataPlan)
+  return byMetadata === 'free' ? null : byMetadata
+}
 
 function bachsFetch(path: string, init: RequestInit): Promise<Response> {
   const base = getOptionalEnv('BACHS_API_BASE', 'https://sandbox-api.bachs.io')
@@ -234,14 +266,18 @@ async function ensureBachsCustomer(
   return customerId
 }
 
-// Create a Bachs checkout for the workspace's Pro subscription; returns the
-// hosted checkout URL to redirect the user to.
-export async function createProCheckout(
+// Create a Bachs checkout for the workspace's subscription to `plan`; returns
+// the hosted checkout URL to redirect the user to.
+export async function createCheckout(
   workspaceId: string,
+  plan: PaidPlan,
   email: string | null,
   name: string | null,
 ): Promise<string> {
-  const productId = getOptionalEnv('BACHS_PRO_PRODUCT_ID', '')
+  const productId = bachsProductId(plan)
+  if (!productId) {
+    throw new Error(`No Bachs product configured for the ${plan} plan`)
+  }
   const appUrl = getOptionalEnv('APP_URL', 'http://localhost:3000')
   // Bachs requires publicly reachable return URLs (no localhost), so fall back
   // to the live domain when developing locally.
@@ -255,7 +291,7 @@ export async function createProCheckout(
     product_cart: [{ product_id: productId, quantity: 1 }],
     success_url: `${returnBase}/upgrade/success`,
     cancel_url: `${returnBase}/app`,
-    metadata: { workspace_id: workspaceId },
+    metadata: { workspace_id: workspaceId, plan },
   })
 
   // A checkout created immediately after a brand-new customer can fail once
