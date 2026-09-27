@@ -3,9 +3,9 @@ import { Users as UsersIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { timeAgo } from '../../lib/format'
-import { PAID_PLAN_IDS, PAID_PLANS } from '../../lib/plans'
 import type { Plan } from '../../lib/plans'
 import type { AdminUserRow } from '../../server/admin'
+import { PlanDropdown } from './plan-dropdown'
 
 // Sticky header cells carry the card's own background so rows don't show
 // through, plus an inset bottom rule — a `border-b` on the header row doesn't
@@ -155,27 +155,18 @@ function PlanSelect({
         await router.invalidate()
       }
     } catch {
-      // ignore — the select re-enables and the operator can retry
+      // ignore — the dropdown re-enables and the operator can retry
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <select
-      aria-label="Plan"
-      className="rounded-lg border border-white/[0.1] bg-[#0d0d10] px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-300 transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
-      disabled={busy}
-      value={plan}
-      onChange={(event) => void change(event.target.value as Plan)}
-    >
-      <option value="free">Free</option>
-      {PAID_PLAN_IDS.map((id) => (
-        <option key={id} value={id}>
-          {PAID_PLANS[id].name}
-        </option>
-      ))}
-    </select>
+    <PlanDropdown
+      plan={plan}
+      busy={busy}
+      onChange={(next) => void change(next)}
+    />
   )
 }
 
