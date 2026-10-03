@@ -3,6 +3,8 @@
 // failure log says which step broke.
 
 import { loadDb } from '../../db/load'
+import { filterBySeverity } from '../../lib/review-guidance'
+import type { ReviewGuidance } from '../../lib/review-guidance'
 import { addUsage, NO_USAGE } from '../llm/usage'
 import type { LlmUsage } from '../llm/usage'
 import { fetchPullRequestDiff, postReviewComment } from './github'
@@ -20,6 +22,8 @@ export type RunReviewInput = {
   headSha: string
   headRef: string
   reviewSecurity: boolean
+  // Already resolved for the plan (defaults on free).
+  guidance: ReviewGuidance
   /** PR from a fork: reviewable, but no fix PR can be opened for it. */
   isFork: boolean
 }
@@ -85,10 +89,18 @@ export async function runReview(input: RunReviewInput): Promise<void> {
       prTitle: input.prTitle,
       diff,
       reviewSecurity: input.reviewSecurity,
+      customInstructions: input.guidance.customInstructions,
     })
 
+    // Filter before saving, fixing, and posting so all three agree.
+    const findings = filterBySeverity(
+      result.findings,
+      input.guidance.minSeverity,
+    )
+    const hiddenCount = result.findings.length - findings.length
+
     stage = 'write_findings'
-    await writeFindings(input.reviewRunId, result.findings)
+    await writeFindings(input.reviewRunId, findings)
 
     // Best-effort: open a PR that applies the fixes. Hard-capped so a slow or
     // stalled fix step can never block posting the review comment. The cap
@@ -101,8 +113,8 @@ export async function runReview(input: RunReviewInput): Promise<void> {
     // Skipped for forks: the head branch lives in the contributor's repo, so
     // there is nothing here to branch from or open a PR against. Attempting it
     // just burns an autofix call to fail at the GitHub calls afterwards.
-    const canOpenFixPr = result.findings.length > 0 && !input.isFork
-    if (input.isFork && result.findings.length > 0) {
+    const canOpenFixPr = findings.length > 0 && !input.isFork
+    if (input.isFork && findings.length > 0) {
       console.log('review.run skipping fix PR for a fork PR', {
         reviewRunId: input.reviewRunId,
         repository,
@@ -122,7 +134,7 @@ export async function runReview(input: RunReviewInput): Promise<void> {
                 headSha: input.headSha,
                 headRef: input.headRef,
               },
-              result.findings,
+              findings,
               signal,
             ),
           45_000,
@@ -136,7 +148,8 @@ export async function runReview(input: RunReviewInput): Promise<void> {
       owner: input.owner,
       repo: input.repo,
       prNumber: input.prNumber,
-      findings: result.findings,
+      findings,
+      hiddenCount,
       truncated,
       fixPrUrl: fix.url,
     })
@@ -162,7 +175,7 @@ export async function runReview(input: RunReviewInput): Promise<void> {
       repository,
       prNumber: input.prNumber,
       filesChanged,
-      findingsCount: result.findings.length,
+      findingsCount: findings.length,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Review run failed'
