@@ -29,6 +29,7 @@ import { Route as AuthSignInRouteImport } from './routes/auth.sign-in'
 import { Route as AuthSignUpRouteImport } from './routes/auth.sign-up'
 import { Route as UpgradeSuccessRouteImport } from './routes/upgrade.success'
 import { Route as ApiAdminAddRunsRouteImport } from './routes/api.admin.add-runs'
+import { Route as ApiAdminCustomReviewsRouteImport } from './routes/api.admin.custom-reviews'
 import { Route as ApiAdminSetPlanRouteImport } from './routes/api.admin.set-plan'
 import { Route as ApiBillingCheckoutRouteImport } from './routes/api.billing.checkout'
 import { Route as ApiBillingWebhookRouteImport } from './routes/api.billing.webhook'
@@ -146,6 +147,11 @@ const ApiAdminAddRunsRoute = ApiAdminAddRunsRouteImport.update({
   path: '/api/admin/add-runs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminCustomReviewsRoute = ApiAdminCustomReviewsRouteImport.update({
+  id: '/api/admin/custom-reviews',
+  path: '/api/admin/custom-reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminSetPlanRoute = ApiAdminSetPlanRouteImport.update({
   id: '/api/admin/set-plan',
   path: '/api/admin/set-plan',
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app/': typeof AppIndexRoute
   '/api/admin/add-runs': typeof ApiAdminAddRunsRoute
+  '/api/admin/custom-reviews': typeof ApiAdminCustomReviewsRoute
   '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app': typeof AppIndexRoute
   '/api/admin/add-runs': typeof ApiAdminAddRunsRoute
+  '/api/admin/custom-reviews': typeof ApiAdminCustomReviewsRoute
   '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
@@ -320,6 +328,7 @@ export interface FileRoutesById {
   '/upgrade/success': typeof UpgradeSuccessRoute
   '/app/': typeof AppIndexRoute
   '/api/admin/add-runs': typeof ApiAdminAddRunsRoute
+  '/api/admin/custom-reviews': typeof ApiAdminCustomReviewsRoute
   '/api/admin/set-plan': typeof ApiAdminSetPlanRoute
   '/api/billing/checkout': typeof ApiBillingCheckoutRoute
   '/api/billing/webhook': typeof ApiBillingWebhookRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/upgrade/success'
     | '/app/'
     | '/api/admin/add-runs'
+    | '/api/admin/custom-reviews'
     | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/upgrade/success'
     | '/app'
     | '/api/admin/add-runs'
+    | '/api/admin/custom-reviews'
     | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
@@ -431,6 +442,7 @@ export interface FileRouteTypes {
     | '/upgrade/success'
     | '/app/'
     | '/api/admin/add-runs'
+    | '/api/admin/custom-reviews'
     | '/api/admin/set-plan'
     | '/api/billing/checkout'
     | '/api/billing/webhook'
@@ -465,6 +477,7 @@ export interface RootRouteChildren {
   AuthSignUpRoute: typeof AuthSignUpRoute
   UpgradeSuccessRoute: typeof UpgradeSuccessRoute
   ApiAdminAddRunsRoute: typeof ApiAdminAddRunsRoute
+  ApiAdminCustomReviewsRoute: typeof ApiAdminCustomReviewsRoute
   ApiAdminSetPlanRoute: typeof ApiAdminSetPlanRoute
   ApiBillingCheckoutRoute: typeof ApiBillingCheckoutRoute
   ApiBillingWebhookRoute: typeof ApiBillingWebhookRoute
@@ -615,6 +628,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/add-runs'
       fullPath: '/api/admin/add-runs'
       preLoaderRoute: typeof ApiAdminAddRunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/custom-reviews': {
+      id: '/api/admin/custom-reviews'
+      path: '/api/admin/custom-reviews'
+      fullPath: '/api/admin/custom-reviews'
+      preLoaderRoute: typeof ApiAdminCustomReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/set-plan': {
@@ -822,6 +842,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthSignUpRoute: AuthSignUpRoute,
   UpgradeSuccessRoute: UpgradeSuccessRoute,
   ApiAdminAddRunsRoute: ApiAdminAddRunsRoute,
+  ApiAdminCustomReviewsRoute: ApiAdminCustomReviewsRoute,
   ApiAdminSetPlanRoute: ApiAdminSetPlanRoute,
   ApiBillingCheckoutRoute: ApiBillingCheckoutRoute,
   ApiBillingWebhookRoute: ApiBillingWebhookRoute,
