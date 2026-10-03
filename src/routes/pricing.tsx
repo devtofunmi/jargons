@@ -225,6 +225,7 @@ function PaidPlanCard({
         <Feature>Codebase scans</Feature>
         <Feature>Security checks</Feature>
         <Feature>One-click fix PRs</Feature>
+        <Feature>Custom review instructions</Feature>
         <Feature>Billed monthly, cancel anytime</Feature>
       </ul>
 
