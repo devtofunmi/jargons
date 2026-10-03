@@ -111,6 +111,10 @@ export const Route = createFileRoute('/api/scans/start')({
           import('../server/scan-engine/run-scan'),
           import('../server/background'),
         ])
+        const guidance = effectiveReviewGuidance(
+          settingsRows[0],
+          isPaidPlan(billing.plan),
+        )
         runInBackground(
           runScan({
             scanId,
@@ -118,10 +122,8 @@ export const Route = createFileRoute('/api/scans/start')({
             owner: repository.owner,
             repo: repository.name,
             branch: repository.defaultBranch,
-            guidance: effectiveReviewGuidance(
-              settingsRows[0],
-              isPaidPlan(billing.plan),
-            ),
+            guidance,
+            customInstructions: guidance.customInstructions,
           }),
         )
 
