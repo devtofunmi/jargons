@@ -60,12 +60,13 @@ export function customInstructionsPrompt(
   ].join('\n')
 }
 
-// Saved guidance only applies while the workspace is on a paid plan.
+// Saved guidance only applies while the workspace is entitled to it (a paid
+// plan or an admin grant).
 export function effectiveReviewGuidance(
   saved: Partial<ReviewGuidance> | null | undefined,
-  paid: boolean,
+  enabled: boolean,
 ): ReviewGuidance {
-  if (!paid || !saved) return DEFAULT_REVIEW_GUIDANCE
+  if (!enabled || !saved) return DEFAULT_REVIEW_GUIDANCE
   return {
     customInstructions: normalizeCustomInstructions(saved.customInstructions),
     minSeverity: parseMinSeverity(saved.minSeverity),
