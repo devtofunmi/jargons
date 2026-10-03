@@ -2,7 +2,6 @@
 // the body is read as data), then pull-request events kick off a review run.
 
 import { loadDb } from '../db/load'
-import { isPaidPlan } from '../lib/plans'
 import { effectiveReviewGuidance } from '../lib/review-guidance'
 import { runInBackground } from './background'
 import { getEnv } from './env'
@@ -61,8 +60,7 @@ export async function verifyWebhookSignature(
 }
 
 export type WebhookResult =
-  | { handled: false; reason: string }
-  | { handled: true; reviewRunId: string }
+  { handled: false; reason: string } | { handled: true; reviewRunId: string }
 
 export async function handlePullRequestEvent(
   payload: PullRequestEvent,
@@ -255,7 +253,7 @@ export async function handlePullRequestEvent(
       headSha: pr.head.sha,
       headRef: pr.head.ref,
       reviewSecurity: settings.reviewSecurity,
-      guidance: effectiveReviewGuidance(settings, isPaidPlan(billing.plan)),
+      guidance: effectiveReviewGuidance(settings, billing.canCustomizeReviews),
       // A fork's head branch doesn't exist in the base repo, so the fix-PR
       // pipeline cannot branch from it or open a PR against it. The review
       // itself works fine, so the run proceeds and only the fix PR is skipped.

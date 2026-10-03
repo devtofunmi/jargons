@@ -27,6 +27,8 @@ export type WorkspaceBilling = {
   runsUsed: number
   limit: number
   canRun: boolean
+  // Paid plans include custom review instructions; admins can grant them too.
+  canCustomizeReviews: boolean
   upgradeUrl: string
 }
 
@@ -47,6 +49,7 @@ export async function getWorkspaceBilling(
       runsUsed: workspaces.runsUsed,
       runsPeriodStart: workspaces.runsPeriodStart,
       bonusRuns: workspaces.bonusRuns,
+      customReviewsGranted: workspaces.customReviewsGranted,
     })
     .from(workspaces)
     .where(eq(workspaces.id, workspaceId))
@@ -65,8 +68,24 @@ export async function getWorkspaceBilling(
     runsUsed,
     limit,
     canRun: runsUsed < limit,
+    canCustomizeReviews:
+      plan !== 'free' || (rows[0]?.customReviewsGranted ?? false),
     upgradeUrl: getUpgradeUrl(),
   }
+}
+
+// Operator grant: turn custom review instructions on or off for a workspace,
+// independent of its plan.
+export async function setCustomReviewsGranted(
+  workspaceId: string,
+  granted: boolean,
+): Promise<void> {
+  const { eq, db, workspaces } = await loadDb()
+
+  await db
+    .update(workspaces)
+    .set({ customReviewsGranted: granted, updatedAt: new Date() })
+    .where(eq(workspaces.id, workspaceId))
 }
 
 // Increment the run counter when a workspace starts an agent run (review,

@@ -235,6 +235,7 @@ export type AdminUserRow = {
   plan: Plan | null
   runsUsed: number
   bonusRuns: number
+  customReviewsGranted: boolean
   repos: number
   reviews: number
   scans: number
@@ -248,7 +249,7 @@ export const getAdminUsers = createServerFn({ method: 'GET' }).handler(
     const rows = await sqlClient`
       select
         u.id as user_id, u.username, u.name, u.email, u.avatar_url, u.created_at,
-        w.id as workspace_id, w.name as workspace_name, w.plan, w.runs_used, w.bonus_runs,
+        w.id as workspace_id, w.name as workspace_name, w.plan, w.runs_used, w.bonus_runs, w.custom_reviews_granted,
         (select count(*)::int from repositories rp where rp.workspace_id = w.id) as repos,
         (select count(*)::int from review_runs rr
            join pull_requests pr on pr.id = rr.pull_request_id
@@ -273,6 +274,7 @@ export const getAdminUsers = createServerFn({ method: 'GET' }).handler(
       plan: r.workspace_id ? parsePlan(r.plan) : null,
       runsUsed: Number(r.runs_used ?? 0),
       bonusRuns: Number(r.bonus_runs ?? 0),
+      customReviewsGranted: r.custom_reviews_granted === true,
       repos: Number(r.repos ?? 0),
       reviews: Number(r.reviews ?? 0),
       scans: Number(r.scans ?? 0),
@@ -292,6 +294,16 @@ export async function setWorkspacePlanAsAdmin(
   } else {
     await markWorkspacePaid(workspaceId, plan)
   }
+}
+
+// Admin-only: grant or revoke custom review instructions for a workspace. The
+// API route re-checks the admin before calling this.
+export async function setCustomReviewsGrantAsAdmin(
+  workspaceId: string,
+  granted: boolean,
+): Promise<void> {
+  const { setCustomReviewsGranted } = await import('./billing')
+  await setCustomReviewsGranted(workspaceId, granted)
 }
 
 // Admin-only: grant one-time bonus runs to a workspace's current window. The

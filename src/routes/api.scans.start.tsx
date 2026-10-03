@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { loadDb } from '../db/load'
-import { isPaidPlan } from '../lib/plans'
 import { effectiveReviewGuidance } from '../lib/review-guidance'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
@@ -120,7 +119,7 @@ export const Route = createFileRoute('/api/scans/start')({
             branch: repository.defaultBranch,
             guidance: effectiveReviewGuidance(
               settingsRows[0],
-              isPaidPlan(billing.plan),
+              billing.canCustomizeReviews,
             ),
           }),
         )
