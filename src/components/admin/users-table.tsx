@@ -25,7 +25,7 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
       </div>
 
       <div className="custom-scrollbar mt-5 max-h-[560px] overflow-auto">
-        <table className="w-full min-w-[760px] border-collapse text-sm">
+        <table className="w-full min-w-[880px] border-collapse text-sm">
           <thead>
             <tr className="text-left font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600">
               <th className={`${TH} pr-4`}>User</th>
@@ -35,6 +35,7 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
               <th className={`${TH} pr-4 text-right`}>Reviews</th>
               <th className={`${TH} pr-4 text-right`}>Scans</th>
               <th className={`${TH} pr-4`}>Joined</th>
+              <th className={`${TH} pr-4`}>Custom reviews</th>
               <th className={TH} />
             </tr>
           </thead>
@@ -90,6 +91,20 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
                 </td>
                 <td className="py-3 pr-4 font-mono text-[11px] text-zinc-500">
                   {timeAgo(user.createdAt)}
+                </td>
+                <td className="py-3 pr-4">
+                  {user.workspaceId && user.plan ? (
+                    user.plan === 'free' ? (
+                      <CustomReviewsToggle
+                        workspaceId={user.workspaceId}
+                        granted={user.customReviewsGranted}
+                      />
+                    ) : (
+                      <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+                        included
+                      </span>
+                    )
+                  ) : null}
                 </td>
                 <td className="py-3">
                   {user.workspaceId && user.plan ? (
@@ -167,6 +182,60 @@ function PlanSelect({
       busy={busy}
       onChange={(next) => void change(next)}
     />
+  )
+}
+
+// Grant or revoke custom review instructions for a free workspace. Paid plans
+// include the feature, so they don't get a switch.
+function CustomReviewsToggle({
+  workspaceId,
+  granted,
+}: {
+  workspaceId: string
+  granted: boolean
+}) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+
+  async function toggle() {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/custom-reviews', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId, granted: !granted }),
+      })
+      if (res.ok) {
+        await router.invalidate()
+      }
+    } catch {
+      // ignore — the switch re-enables and the operator can retry
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={granted}
+      aria-label={granted ? 'Revoke custom reviews' : 'Grant custom reviews'}
+      title={granted ? 'Granted — click to revoke' : 'Click to grant'}
+      disabled={busy}
+      onClick={() => void toggle()}
+      className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        granted
+          ? 'border-amber-300/30 bg-amber-300'
+          : 'border-white/[0.1] bg-white/[0.04]'
+      }`}
+    >
+      <span
+        className={`absolute top-[3px] size-3 rounded-full transition-[left] ${
+          granted ? 'left-[19px] bg-zinc-950' : 'left-[3px] bg-zinc-500'
+        }`}
+      />
+    </button>
   )
 }
 
