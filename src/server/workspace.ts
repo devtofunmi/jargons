@@ -1,6 +1,15 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { loadDb } from '../db/load'
+import { isPaidPlan } from '../lib/plans'
+import type { Plan } from '../lib/plans'
+import {
+  DEFAULT_REVIEW_GUIDANCE,
+  normalizeCustomInstructions,
+  parseMinSeverity,
+} from '../lib/review-guidance'
+import type { ReviewGuidance } from '../lib/review-guidance'
+import { getWorkspaceBilling } from './billing'
 import { getCurrentUserFromCookie } from './github-auth'
 
 export type WorkspaceSettingsData = {
@@ -24,6 +33,13 @@ export type WorkspaceSettingsData = {
     reviewSecurity: boolean
     reviewCodebaseScans: boolean
   }
+  guidance: ReviewGuidance
+  canCustomizeReviews: boolean
+  billing: {
+    plan: Plan
+    runsUsed: number
+    limit: number
+  }
 }
 
 export const getWorkspaceSettings = createServerFn({ method: 'GET' }).handler(
@@ -44,7 +60,7 @@ export const getWorkspaceSettings = createServerFn({ method: 'GET' }).handler(
     } = await loadDb()
 
     const workspaceId = currentUser.workspace.id
-    const [installationRows, repositoryCountRows, settingsRows] =
+    const [installationRows, repositoryCountRows, settingsRows, billing] =
       await Promise.all([
         db
           .select({
@@ -63,11 +79,16 @@ export const getWorkspaceSettings = createServerFn({ method: 'GET' }).handler(
             reviewPullRequests: workspaceSettings.reviewPullRequests,
             reviewSecurity: workspaceSettings.reviewSecurity,
             reviewCodebaseScans: workspaceSettings.reviewCodebaseScans,
+            customInstructions: workspaceSettings.customInstructions,
+            minSeverity: workspaceSettings.minSeverity,
           })
           .from(workspaceSettings)
           .where(eq(workspaceSettings.workspaceId, workspaceId))
           .limit(1),
+        getWorkspaceBilling(workspaceId),
       ])
+
+    const settingsRow = settingsRows.at(0)
 
     return {
       workspace: {
@@ -82,10 +103,28 @@ export const getWorkspaceSettings = createServerFn({ method: 'GET' }).handler(
       },
       installation: installationRows[0] ?? null,
       repositoryCount: repositoryCountRows[0]?.value ?? 0,
-      preferences: settingsRows[0] ?? {
-        reviewPullRequests: true,
-        reviewSecurity: true,
-        reviewCodebaseScans: true,
+      preferences: settingsRow
+        ? {
+            reviewPullRequests: settingsRow.reviewPullRequests,
+            reviewSecurity: settingsRow.reviewSecurity,
+            reviewCodebaseScans: settingsRow.reviewCodebaseScans,
+          }
+        : {
+            reviewPullRequests: true,
+            reviewSecurity: true,
+            reviewCodebaseScans: true,
+          },
+      guidance: settingsRow
+        ? {
+            customInstructions: settingsRow.customInstructions,
+            minSeverity: settingsRow.minSeverity,
+          }
+        : DEFAULT_REVIEW_GUIDANCE,
+      canCustomizeReviews: isPaidPlan(billing.plan),
+      billing: {
+        plan: billing.plan,
+        runsUsed: billing.runsUsed,
+        limit: billing.limit,
       },
     }
   },
@@ -97,7 +136,20 @@ export const updateReviewPreferences = createServerFn({ method: 'POST' })
       reviewPullRequests: boolean
       reviewSecurity: boolean
       reviewCodebaseScans: boolean
-    }) => input,
+      guidance?: { customInstructions?: unknown; minSeverity?: unknown }
+    }) => ({
+      reviewPullRequests: input.reviewPullRequests === true,
+      reviewSecurity: input.reviewSecurity === true,
+      reviewCodebaseScans: input.reviewCodebaseScans === true,
+      guidance: input.guidance
+        ? {
+            customInstructions: normalizeCustomInstructions(
+              input.guidance.customInstructions,
+            ),
+            minSeverity: parseMinSeverity(input.guidance.minSeverity),
+          }
+        : null,
+    }),
   )
   .handler(async ({ data }) => {
     const currentUser = await getCurrentUserFromCookie()
@@ -106,19 +158,31 @@ export const updateReviewPreferences = createServerFn({ method: 'POST' })
       throw new Error('Sign in before updating workspace settings.')
     }
 
+    const workspaceId = currentUser.workspace.id
+    const { guidance, ...preferences } = data
+
+    // Review guidance is a paid feature: free workspaces can't change it.
+    if (guidance) {
+      const billing = await getWorkspaceBilling(workspaceId)
+      if (!isPaidPlan(billing.plan)) {
+        throw new Error('Custom review instructions need a paid plan.')
+      }
+    }
+
+    const values = { ...preferences, ...(guidance ?? {}) }
     const { db, workspaceSettings } = await loadDb()
 
     await db
       .insert(workspaceSettings)
       .values({
-        workspaceId: currentUser.workspace.id,
-        ...data,
+        workspaceId,
+        ...values,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: workspaceSettings.workspaceId,
         set: {
-          ...data,
+          ...values,
           updatedAt: new Date(),
         },
       })
