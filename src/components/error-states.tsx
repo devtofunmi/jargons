@@ -69,8 +69,10 @@ export function RootNotFound() {
 // Heuristic: does this error look like a transient infrastructure/connectivity
 // problem (database unreachable, upstream timeout) rather than a bug? We only
 // inspect the message to pick the copy — it is never shown to the user.
-function looksLikeServiceOutage(error: Error): boolean {
-  const text = `${error.name} ${error.message}`.toLowerCase()
+function looksLikeServiceOutage(error: unknown): boolean {
+  const text = (
+    error instanceof Error ? `${error.name} ${error.message}` : String(error)
+  ).toLowerCase()
   return (
     text.includes('failed query') ||
     text.includes('etimedout') ||
@@ -83,7 +85,7 @@ function looksLikeServiceOutage(error: Error): boolean {
   )
 }
 
-export function RootErrorComponent({ error }: { error: Error }) {
+export function RootErrorComponent({ error }: { error: unknown }) {
   // Log the real error for debugging (server console during SSR, browser
   // console on the client). It is NEVER rendered — messages can contain raw
   // SQL, query params, or session tokens (e.g. a failed database query).
