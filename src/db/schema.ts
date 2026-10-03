@@ -93,6 +93,10 @@ export const workspaces = pgTable('workspaces', {
   // the plan's run limit and resets to 0 with runsUsed when the month rolls
   // over, so a grant never recurs.
   bonusRuns: integer('bonus_runs').notNull().default(0),
+  // Operator grant: custom review instructions without a paid plan.
+  customReviewsGranted: boolean('custom_reviews_granted')
+    .notNull()
+    .default(false),
   // Bachs billing identifiers, set when the workspace subscribes. The customer
   // id links webhook events back to this workspace.
   bachsCustomerId: text('bachs_customer_id'),
