@@ -150,7 +150,10 @@ export const getBilling = createServerFn({ method: 'GET' }).handler(
 export async function markWorkspacePaid(
   workspaceId: string,
   plan: PaidPlan,
-  ids?: { customerId?: string; subscriptionId?: string },
+  ids?: {
+    customerId?: string
+    subscriptionId?: string
+  },
 ): Promise<void> {
   const { eq, db, workspaces } = await loadDb()
 
