@@ -114,6 +114,9 @@ export const workspaceSettings = pgTable('workspace_settings', {
   reviewPullRequests: boolean('review_pull_requests').notNull().default(true),
   reviewSecurity: boolean('review_security').notNull().default(true),
   reviewCodebaseScans: boolean('review_codebase_scans').notNull().default(true),
+  // Paid-plan review guidance; see src/lib/review-guidance.ts.
+  customInstructions: text('custom_instructions'),
+  minSeverity: findingSeverity('min_severity').notNull().default('note'),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
