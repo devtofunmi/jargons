@@ -3,6 +3,8 @@
 // failure log says which step broke.
 
 import { loadDb } from '../../db/load'
+import { filterBySeverity } from '../../lib/review-guidance'
+import type { ReviewGuidance } from '../../lib/review-guidance'
 import { NO_USAGE, addUsage } from '../llm/usage'
 import type { LlmUsage } from '../llm/usage'
 import type { LlmFinding, ReviewSeverity } from '../review-engine/llm'
@@ -34,6 +36,8 @@ export type RunScanInput = {
   owner: string
   repo: string
   branch: string
+  // Already resolved for the plan (defaults on free).
+  guidance: ReviewGuidance
 }
 
 export async function runScan(input: RunScanInput): Promise<void> {
@@ -86,7 +90,16 @@ export async function runScan(input: RunScanInput): Promise<void> {
     )
 
     stage = 'llm_scan'
-    const result = await scanCodebase({ repository, files })
+    const result = await scanCodebase({
+      repository,
+      files,
+      customInstructions: input.guidance.customInstructions,
+    })
+    // Filter before the map and summary so counts and findings agree.
+    const findings = filterBySeverity(
+      result.findings,
+      input.guidance.minSeverity,
+    )
     let usage: LlmUsage = {
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
@@ -98,18 +111,18 @@ export async function runScan(input: RunScanInput): Promise<void> {
       repository,
       paths,
       edges,
-      findings: result.findings,
+      findings,
       graphedFiles: heads.length,
     })
     usage = addUsage(usage, mapped.usage)
 
     stage = 'write_summary'
-    const counts = countBySeverity(result.findings)
+    const counts = countBySeverity(findings)
     await markComplete(
       input.scanId,
       files.length,
       {
-        findings: result.findings,
+        findings,
         counts,
         scannedFiles: files.length,
         model: result.model,
@@ -126,7 +139,7 @@ export async function runScan(input: RunScanInput): Promise<void> {
       graphedFiles: heads.length,
       importEdges: edges.length,
       scannedFiles: files.length,
-      findingsCount: result.findings.length,
+      findingsCount: findings.length,
       modules: mapped.architecture?.modules.length ?? 0,
     })
   } catch (error) {
