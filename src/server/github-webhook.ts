@@ -2,6 +2,8 @@
 // the body is read as data), then pull-request events kick off a review run.
 
 import { loadDb } from '../db/load'
+import { isPaidPlan } from '../lib/plans'
+import { effectiveReviewGuidance } from '../lib/review-guidance'
 import { runInBackground } from './background'
 import { getEnv } from './env'
 import { runReview } from './review-engine/run-review'
@@ -108,6 +110,8 @@ export async function handlePullRequestEvent(
     .select({
       reviewPullRequests: schema.workspaceSettings.reviewPullRequests,
       reviewSecurity: schema.workspaceSettings.reviewSecurity,
+      customInstructions: schema.workspaceSettings.customInstructions,
+      minSeverity: schema.workspaceSettings.minSeverity,
     })
     .from(schema.workspaceSettings)
     .where(eq(schema.workspaceSettings.workspaceId, workspaceId))
@@ -116,6 +120,8 @@ export async function handlePullRequestEvent(
   const settings = settingsRows[0] ?? {
     reviewPullRequests: true,
     reviewSecurity: true,
+    customInstructions: null,
+    minSeverity: 'note' as const,
   }
 
   if (!settings.reviewPullRequests) {
@@ -249,6 +255,7 @@ export async function handlePullRequestEvent(
       headSha: pr.head.sha,
       headRef: pr.head.ref,
       reviewSecurity: settings.reviewSecurity,
+      guidance: effectiveReviewGuidance(settings, isPaidPlan(billing.plan)),
       // A fork's head branch doesn't exist in the base repo, so the fix-PR
       // pipeline cannot branch from it or open a PR against it. The review
       // itself works fine, so the run proceeds and only the fix PR is skipped.
