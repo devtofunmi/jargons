@@ -4,6 +4,7 @@
 
 import { getOptionalEnv } from '../env'
 import { callGemini } from '../llm/gemini'
+import { customInstructionsPrompt } from '../../lib/review-guidance'
 import { SEVERITIES } from '../../lib/severity'
 import { parseFindings } from '../review-engine/findings'
 import type { LlmFinding } from '../review-engine/llm'
@@ -20,9 +21,11 @@ export type ScanResult = {
 export async function scanCodebase({
   repository,
   files,
+  customInstructions = null,
 }: {
   repository: string
   files: RepoFile[]
+  customInstructions?: string | null
 }): Promise<ScanResult> {
   const provider = getOptionalEnv('LLM_PROVIDER', 'gemini')
   const model = getOptionalEnv('LLM_MODEL', 'gemini-2.5-flash')
@@ -33,7 +36,7 @@ export async function scanCodebase({
 
   const result = await callGemini({
     model,
-    systemPrompt: systemPrompt(),
+    systemPrompt: systemPrompt(customInstructions),
     userPrompt: userPrompt(repository, files),
     responseSchema: RESPONSE_SCHEMA,
     maxOutputTokens: 8192,
@@ -70,13 +73,16 @@ const RESPONSE_SCHEMA = {
   required: ['findings'],
 } as const
 
-function systemPrompt() {
+function systemPrompt(customInstructions: string | null) {
   return [
     'You are Jargons, a senior engineer scanning an existing codebase for real defects.',
     'Report only concrete, high-signal issues: logic bugs, security vulnerabilities (injection, auth gaps, secret exposure, SSRF, unsafe deserialization), data-loss/race conditions, broken error handling, and dependency/structural risks.',
     'Do NOT report style, formatting, or naming nitpicks. If a file is clean, do not invent issues.',
     'Set filePath to the exact path given, and lineNumber to the relevant line when identifiable (else null). Give a short actionable suggestion for each finding.',
-  ].join('\n')
+    customInstructionsPrompt(customInstructions),
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 function userPrompt(repository: string, files: RepoFile[]) {
