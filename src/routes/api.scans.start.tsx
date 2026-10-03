@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { loadDb } from '../db/load'
+import { isPaidPlan } from '../lib/plans'
+import { effectiveReviewGuidance } from '../lib/review-guidance'
 import { getCurrentUserFromRequest } from '../server/github-auth'
 
 export const Route = createFileRoute('/api/scans/start')({
@@ -42,6 +44,7 @@ export const Route = createFileRoute('/api/scans/start')({
           codebaseScans,
           githubInstallations,
           repositories,
+          workspaceSettings,
         } = await loadDb()
 
         const repositoryRows = await db
@@ -91,6 +94,15 @@ export const Route = createFileRoute('/api/scans/start')({
 
         const scanId = inserted[0].id
 
+        const settingsRows = await db
+          .select({
+            customInstructions: workspaceSettings.customInstructions,
+            minSeverity: workspaceSettings.minSeverity,
+          })
+          .from(workspaceSettings)
+          .where(eq(workspaceSettings.workspaceId, currentUser.workspace.id))
+          .limit(1)
+
         await incrementWorkspaceRuns(currentUser.workspace.id)
 
         // Background: kept alive after the response via waitUntil so serverless
@@ -106,6 +118,10 @@ export const Route = createFileRoute('/api/scans/start')({
             owner: repository.owner,
             repo: repository.name,
             branch: repository.defaultBranch,
+            guidance: effectiveReviewGuidance(
+              settingsRows[0],
+              isPaidPlan(billing.plan),
+            ),
           }),
         )
 

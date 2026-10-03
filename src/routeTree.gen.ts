@@ -9,71 +9,46 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as DocsRouteImport } from './routes/docs'
-import { Route as AppRouteImport } from './routes/app'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as UpgradeSuccessRouteImport } from './routes/upgrade.success'
-import { Route as AuthSignUpRouteImport } from './routes/auth.sign-up'
-import { Route as AuthSignInRouteImport } from './routes/auth.sign-in'
-import { Route as AuthSetupRouteImport } from './routes/auth.setup'
-import { Route as AuthConnectRouteImport } from './routes/auth.connect'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
-import { Route as AppScansRouteImport } from './routes/app.scans'
-import { Route as AppReviewsRouteImport } from './routes/app.reviews'
-import { Route as AppRepositoriesRouteImport } from './routes/app.repositories'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiTrackRouteImport } from './routes/api.track'
-import { Route as AppScansIndexRouteImport } from './routes/app.scans.index'
-import { Route as AppReviewsIndexRouteImport } from './routes/app.reviews.index'
-import { Route as AppRepositoriesIndexRouteImport } from './routes/app.repositories.index'
-import { Route as AuthGithubStartRouteImport } from './routes/auth.github.start'
-import { Route as AuthGithubInstallRouteImport } from './routes/auth.github.install'
-import { Route as AuthGithubCallbackRouteImport } from './routes/auth.github.callback'
-import { Route as AppScansScanIdRouteImport } from './routes/app.scans.$scanId'
-import { Route as AppReviewsReviewIdRouteImport } from './routes/app.reviews.$reviewId'
-import { Route as AppRepositoriesRepoIdRouteImport } from './routes/app.repositories.$repoId'
-import { Route as ApiScansStartRouteImport } from './routes/api.scans.start'
-import { Route as ApiGithubWebhookRouteImport } from './routes/api.github.webhook'
-import { Route as ApiBillingWebhookRouteImport } from './routes/api.billing.webhook'
-import { Route as ApiBillingCheckoutRouteImport } from './routes/api.billing.checkout'
-import { Route as ApiAdminSetPlanRouteImport } from './routes/api.admin.set-plan'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppRepositoriesRouteImport } from './routes/app.repositories'
+import { Route as AppReviewsRouteImport } from './routes/app.reviews'
+import { Route as AppScansRouteImport } from './routes/app.scans'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AuthConnectRouteImport } from './routes/auth.connect'
+import { Route as AuthSetupRouteImport } from './routes/auth.setup'
+import { Route as AuthSignInRouteImport } from './routes/auth.sign-in'
+import { Route as AuthSignUpRouteImport } from './routes/auth.sign-up'
+import { Route as UpgradeSuccessRouteImport } from './routes/upgrade.success'
 import { Route as ApiAdminAddRunsRouteImport } from './routes/api.admin.add-runs'
+import { Route as ApiAdminSetPlanRouteImport } from './routes/api.admin.set-plan'
+import { Route as ApiBillingCheckoutRouteImport } from './routes/api.billing.checkout'
+import { Route as ApiBillingWebhookRouteImport } from './routes/api.billing.webhook'
+import { Route as ApiGithubWebhookRouteImport } from './routes/api.github.webhook'
+import { Route as ApiScansStartRouteImport } from './routes/api.scans.start'
+import { Route as AppRepositoriesIndexRouteImport } from './routes/app.repositories.index'
+import { Route as AppRepositoriesRepoIdRouteImport } from './routes/app.repositories.$repoId'
+import { Route as AppReviewsIndexRouteImport } from './routes/app.reviews.index'
+import { Route as AppReviewsReviewIdRouteImport } from './routes/app.reviews.$reviewId'
+import { Route as AppScansIndexRouteImport } from './routes/app.scans.index'
+import { Route as AppScansScanIdRouteImport } from './routes/app.scans.$scanId'
+import { Route as AuthGithubCallbackRouteImport } from './routes/auth.github.callback'
+import { Route as AuthGithubInstallRouteImport } from './routes/auth.github.install'
+import { Route as AuthGithubStartRouteImport } from './routes/auth.github.start'
 import { Route as AppScansScanIdIndexRouteImport } from './routes/app.scans.$scanId.index'
 import { Route as AppScansScanIdFindingIdRouteImport } from './routes/app.scans.$scanId.$findingId'
 
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsRoute = DocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/app',
-  path: '/app',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -81,9 +56,39 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrackRoute = ApiTrackRouteImport.update({
+  id: '/api/track',
+  path: '/api/track',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -91,39 +96,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const UpgradeSuccessRoute = UpgradeSuccessRouteImport.update({
-  id: '/upgrade/success',
-  path: '/upgrade/success',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSignUpRoute = AuthSignUpRouteImport.update({
-  id: '/auth/sign-up',
-  path: '/auth/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSignInRoute = AuthSignInRouteImport.update({
-  id: '/auth/sign-in',
-  path: '/auth/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSetupRoute = AuthSetupRouteImport.update({
-  id: '/auth/setup',
-  path: '/auth/setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthConnectRoute = AuthConnectRouteImport.update({
-  id: '/auth/connect',
-  path: '/auth/connect',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppScansRoute = AppScansRouteImport.update({
-  id: '/scans',
-  path: '/scans',
+const AppRepositoriesRoute = AppRepositoriesRouteImport.update({
+  id: '/repositories',
+  path: '/repositories',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReviewsRoute = AppReviewsRouteImport.update({
@@ -131,79 +106,44 @@ const AppReviewsRoute = AppReviewsRouteImport.update({
   path: '/reviews',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRepositoriesRoute = AppRepositoriesRouteImport.update({
-  id: '/repositories',
-  path: '/repositories',
+const AppScansRoute = AppScansRouteImport.update({
+  id: '/scans',
+  path: '/scans',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiTrackRoute = ApiTrackRouteImport.update({
-  id: '/api/track',
-  path: '/api/track',
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AuthConnectRoute = AuthConnectRouteImport.update({
+  id: '/auth/connect',
+  path: '/auth/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppScansIndexRoute = AppScansIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppScansRoute,
-} as any)
-const AppReviewsIndexRoute = AppReviewsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppReviewsRoute,
-} as any)
-const AppRepositoriesIndexRoute = AppRepositoriesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRepositoriesRoute,
-} as any)
-const AuthGithubStartRoute = AuthGithubStartRouteImport.update({
-  id: '/auth/github/start',
-  path: '/auth/github/start',
+const AuthSetupRoute = AuthSetupRouteImport.update({
+  id: '/auth/setup',
+  path: '/auth/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthGithubInstallRoute = AuthGithubInstallRouteImport.update({
-  id: '/auth/github/install',
-  path: '/auth/github/install',
+const AuthSignInRoute = AuthSignInRouteImport.update({
+  id: '/auth/sign-in',
+  path: '/auth/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthGithubCallbackRoute = AuthGithubCallbackRouteImport.update({
-  id: '/auth/github/callback',
-  path: '/auth/github/callback',
+const AuthSignUpRoute = AuthSignUpRouteImport.update({
+  id: '/auth/sign-up',
+  path: '/auth/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppScansScanIdRoute = AppScansScanIdRouteImport.update({
-  id: '/$scanId',
-  path: '/$scanId',
-  getParentRoute: () => AppScansRoute,
-} as any)
-const AppReviewsReviewIdRoute = AppReviewsReviewIdRouteImport.update({
-  id: '/$reviewId',
-  path: '/$reviewId',
-  getParentRoute: () => AppReviewsRoute,
-} as any)
-const AppRepositoriesRepoIdRoute = AppRepositoriesRepoIdRouteImport.update({
-  id: '/$repoId',
-  path: '/$repoId',
-  getParentRoute: () => AppRepositoriesRoute,
-} as any)
-const ApiScansStartRoute = ApiScansStartRouteImport.update({
-  id: '/api/scans/start',
-  path: '/api/scans/start',
+const UpgradeSuccessRoute = UpgradeSuccessRouteImport.update({
+  id: '/upgrade/success',
+  path: '/upgrade/success',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiGithubWebhookRoute = ApiGithubWebhookRouteImport.update({
-  id: '/api/github/webhook',
-  path: '/api/github/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiBillingWebhookRoute = ApiBillingWebhookRouteImport.update({
-  id: '/api/billing/webhook',
-  path: '/api/billing/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiBillingCheckoutRoute = ApiBillingCheckoutRouteImport.update({
-  id: '/api/billing/checkout',
-  path: '/api/billing/checkout',
+const ApiAdminAddRunsRoute = ApiAdminAddRunsRouteImport.update({
+  id: '/api/admin/add-runs',
+  path: '/api/admin/add-runs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminSetPlanRoute = ApiAdminSetPlanRouteImport.update({
@@ -211,9 +151,69 @@ const ApiAdminSetPlanRoute = ApiAdminSetPlanRouteImport.update({
   path: '/api/admin/set-plan',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminAddRunsRoute = ApiAdminAddRunsRouteImport.update({
-  id: '/api/admin/add-runs',
-  path: '/api/admin/add-runs',
+const ApiBillingCheckoutRoute = ApiBillingCheckoutRouteImport.update({
+  id: '/api/billing/checkout',
+  path: '/api/billing/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingWebhookRoute = ApiBillingWebhookRouteImport.update({
+  id: '/api/billing/webhook',
+  path: '/api/billing/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGithubWebhookRoute = ApiGithubWebhookRouteImport.update({
+  id: '/api/github/webhook',
+  path: '/api/github/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScansStartRoute = ApiScansStartRouteImport.update({
+  id: '/api/scans/start',
+  path: '/api/scans/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRepositoriesIndexRoute = AppRepositoriesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRepositoriesRoute,
+} as any)
+const AppRepositoriesRepoIdRoute = AppRepositoriesRepoIdRouteImport.update({
+  id: '/$repoId',
+  path: '/$repoId',
+  getParentRoute: () => AppRepositoriesRoute,
+} as any)
+const AppReviewsIndexRoute = AppReviewsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppReviewsRoute,
+} as any)
+const AppReviewsReviewIdRoute = AppReviewsReviewIdRouteImport.update({
+  id: '/$reviewId',
+  path: '/$reviewId',
+  getParentRoute: () => AppReviewsRoute,
+} as any)
+const AppScansIndexRoute = AppScansIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppScansRoute,
+} as any)
+const AppScansScanIdRoute = AppScansScanIdRouteImport.update({
+  id: '/$scanId',
+  path: '/$scanId',
+  getParentRoute: () => AppScansRoute,
+} as any)
+const AuthGithubCallbackRoute = AuthGithubCallbackRouteImport.update({
+  id: '/auth/github/callback',
+  path: '/auth/github/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthGithubInstallRoute = AuthGithubInstallRouteImport.update({
+  id: '/auth/github/install',
+  path: '/auth/github/install',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthGithubStartRoute = AuthGithubStartRouteImport.update({
+  id: '/auth/github/start',
+  path: '/auth/github/start',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppScansScanIdIndexRoute = AppScansScanIdIndexRouteImport.update({
@@ -477,46 +477,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AppRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -526,11 +491,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/track': {
+      id: '/api/track'
+      path: '/api/track'
+      fullPath: '/api/track'
+      preLoaderRoute: typeof ApiTrackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -540,53 +547,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/upgrade/success': {
-      id: '/upgrade/success'
-      path: '/upgrade/success'
-      fullPath: '/upgrade/success'
-      preLoaderRoute: typeof UpgradeSuccessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/sign-up': {
-      id: '/auth/sign-up'
-      path: '/auth/sign-up'
-      fullPath: '/auth/sign-up'
-      preLoaderRoute: typeof AuthSignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/sign-in': {
-      id: '/auth/sign-in'
-      path: '/auth/sign-in'
-      fullPath: '/auth/sign-in'
-      preLoaderRoute: typeof AuthSignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/setup': {
-      id: '/auth/setup'
-      path: '/auth/setup'
-      fullPath: '/auth/setup'
-      preLoaderRoute: typeof AuthSetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/connect': {
-      id: '/auth/connect'
-      path: '/auth/connect'
-      fullPath: '/auth/connect'
-      preLoaderRoute: typeof AuthConnectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/scans': {
-      id: '/app/scans'
-      path: '/scans'
-      fullPath: '/app/scans'
-      preLoaderRoute: typeof AppScansRouteImport
+    '/app/repositories': {
+      id: '/app/repositories'
+      path: '/repositories'
+      fullPath: '/app/repositories'
+      preLoaderRoute: typeof AppRepositoriesRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/reviews': {
@@ -596,109 +561,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReviewsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/repositories': {
-      id: '/app/repositories'
-      path: '/repositories'
-      fullPath: '/app/repositories'
-      preLoaderRoute: typeof AppRepositoriesRouteImport
+    '/app/scans': {
+      id: '/app/scans'
+      path: '/scans'
+      fullPath: '/app/scans'
+      preLoaderRoute: typeof AppScansRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/track': {
-      id: '/api/track'
-      path: '/api/track'
-      fullPath: '/api/track'
-      preLoaderRoute: typeof ApiTrackRouteImport
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/auth/connect': {
+      id: '/auth/connect'
+      path: '/auth/connect'
+      fullPath: '/auth/connect'
+      preLoaderRoute: typeof AuthConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/scans/': {
-      id: '/app/scans/'
-      path: '/'
-      fullPath: '/app/scans/'
-      preLoaderRoute: typeof AppScansIndexRouteImport
-      parentRoute: typeof AppScansRoute
-    }
-    '/app/reviews/': {
-      id: '/app/reviews/'
-      path: '/'
-      fullPath: '/app/reviews/'
-      preLoaderRoute: typeof AppReviewsIndexRouteImport
-      parentRoute: typeof AppReviewsRoute
-    }
-    '/app/repositories/': {
-      id: '/app/repositories/'
-      path: '/'
-      fullPath: '/app/repositories/'
-      preLoaderRoute: typeof AppRepositoriesIndexRouteImport
-      parentRoute: typeof AppRepositoriesRoute
-    }
-    '/auth/github/start': {
-      id: '/auth/github/start'
-      path: '/auth/github/start'
-      fullPath: '/auth/github/start'
-      preLoaderRoute: typeof AuthGithubStartRouteImport
+    '/auth/setup': {
+      id: '/auth/setup'
+      path: '/auth/setup'
+      fullPath: '/auth/setup'
+      preLoaderRoute: typeof AuthSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/github/install': {
-      id: '/auth/github/install'
-      path: '/auth/github/install'
-      fullPath: '/auth/github/install'
-      preLoaderRoute: typeof AuthGithubInstallRouteImport
+    '/auth/sign-in': {
+      id: '/auth/sign-in'
+      path: '/auth/sign-in'
+      fullPath: '/auth/sign-in'
+      preLoaderRoute: typeof AuthSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/github/callback': {
-      id: '/auth/github/callback'
-      path: '/auth/github/callback'
-      fullPath: '/auth/github/callback'
-      preLoaderRoute: typeof AuthGithubCallbackRouteImport
+    '/auth/sign-up': {
+      id: '/auth/sign-up'
+      path: '/auth/sign-up'
+      fullPath: '/auth/sign-up'
+      preLoaderRoute: typeof AuthSignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/scans/$scanId': {
-      id: '/app/scans/$scanId'
-      path: '/$scanId'
-      fullPath: '/app/scans/$scanId'
-      preLoaderRoute: typeof AppScansScanIdRouteImport
-      parentRoute: typeof AppScansRoute
-    }
-    '/app/reviews/$reviewId': {
-      id: '/app/reviews/$reviewId'
-      path: '/$reviewId'
-      fullPath: '/app/reviews/$reviewId'
-      preLoaderRoute: typeof AppReviewsReviewIdRouteImport
-      parentRoute: typeof AppReviewsRoute
-    }
-    '/app/repositories/$repoId': {
-      id: '/app/repositories/$repoId'
-      path: '/$repoId'
-      fullPath: '/app/repositories/$repoId'
-      preLoaderRoute: typeof AppRepositoriesRepoIdRouteImport
-      parentRoute: typeof AppRepositoriesRoute
-    }
-    '/api/scans/start': {
-      id: '/api/scans/start'
-      path: '/api/scans/start'
-      fullPath: '/api/scans/start'
-      preLoaderRoute: typeof ApiScansStartRouteImport
+    '/upgrade/success': {
+      id: '/upgrade/success'
+      path: '/upgrade/success'
+      fullPath: '/upgrade/success'
+      preLoaderRoute: typeof UpgradeSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/github/webhook': {
-      id: '/api/github/webhook'
-      path: '/api/github/webhook'
-      fullPath: '/api/github/webhook'
-      preLoaderRoute: typeof ApiGithubWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/billing/webhook': {
-      id: '/api/billing/webhook'
-      path: '/api/billing/webhook'
-      fullPath: '/api/billing/webhook'
-      preLoaderRoute: typeof ApiBillingWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/billing/checkout': {
-      id: '/api/billing/checkout'
-      path: '/api/billing/checkout'
-      fullPath: '/api/billing/checkout'
-      preLoaderRoute: typeof ApiBillingCheckoutRouteImport
+    '/api/admin/add-runs': {
+      id: '/api/admin/add-runs'
+      path: '/api/admin/add-runs'
+      fullPath: '/api/admin/add-runs'
+      preLoaderRoute: typeof ApiAdminAddRunsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/set-plan': {
@@ -708,11 +624,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminSetPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/add-runs': {
-      id: '/api/admin/add-runs'
-      path: '/api/admin/add-runs'
-      fullPath: '/api/admin/add-runs'
-      preLoaderRoute: typeof ApiAdminAddRunsRouteImport
+    '/api/billing/checkout': {
+      id: '/api/billing/checkout'
+      path: '/api/billing/checkout'
+      fullPath: '/api/billing/checkout'
+      preLoaderRoute: typeof ApiBillingCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/webhook': {
+      id: '/api/billing/webhook'
+      path: '/api/billing/webhook'
+      fullPath: '/api/billing/webhook'
+      preLoaderRoute: typeof ApiBillingWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/github/webhook': {
+      id: '/api/github/webhook'
+      path: '/api/github/webhook'
+      fullPath: '/api/github/webhook'
+      preLoaderRoute: typeof ApiGithubWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scans/start': {
+      id: '/api/scans/start'
+      path: '/api/scans/start'
+      fullPath: '/api/scans/start'
+      preLoaderRoute: typeof ApiScansStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/repositories/': {
+      id: '/app/repositories/'
+      path: '/'
+      fullPath: '/app/repositories/'
+      preLoaderRoute: typeof AppRepositoriesIndexRouteImport
+      parentRoute: typeof AppRepositoriesRoute
+    }
+    '/app/repositories/$repoId': {
+      id: '/app/repositories/$repoId'
+      path: '/$repoId'
+      fullPath: '/app/repositories/$repoId'
+      preLoaderRoute: typeof AppRepositoriesRepoIdRouteImport
+      parentRoute: typeof AppRepositoriesRoute
+    }
+    '/app/reviews/': {
+      id: '/app/reviews/'
+      path: '/'
+      fullPath: '/app/reviews/'
+      preLoaderRoute: typeof AppReviewsIndexRouteImport
+      parentRoute: typeof AppReviewsRoute
+    }
+    '/app/reviews/$reviewId': {
+      id: '/app/reviews/$reviewId'
+      path: '/$reviewId'
+      fullPath: '/app/reviews/$reviewId'
+      preLoaderRoute: typeof AppReviewsReviewIdRouteImport
+      parentRoute: typeof AppReviewsRoute
+    }
+    '/app/scans/': {
+      id: '/app/scans/'
+      path: '/'
+      fullPath: '/app/scans/'
+      preLoaderRoute: typeof AppScansIndexRouteImport
+      parentRoute: typeof AppScansRoute
+    }
+    '/app/scans/$scanId': {
+      id: '/app/scans/$scanId'
+      path: '/$scanId'
+      fullPath: '/app/scans/$scanId'
+      preLoaderRoute: typeof AppScansScanIdRouteImport
+      parentRoute: typeof AppScansRoute
+    }
+    '/auth/github/callback': {
+      id: '/auth/github/callback'
+      path: '/auth/github/callback'
+      fullPath: '/auth/github/callback'
+      preLoaderRoute: typeof AuthGithubCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/github/install': {
+      id: '/auth/github/install'
+      path: '/auth/github/install'
+      fullPath: '/auth/github/install'
+      preLoaderRoute: typeof AuthGithubInstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/github/start': {
+      id: '/auth/github/start'
+      path: '/auth/github/start'
+      fullPath: '/auth/github/start'
+      preLoaderRoute: typeof AuthGithubStartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/scans/$scanId/': {

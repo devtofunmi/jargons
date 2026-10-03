@@ -306,6 +306,7 @@ export async function postReviewComment({
   repo,
   prNumber,
   findings,
+  hiddenCount = 0,
   truncated,
   fixPrUrl,
 }: {
@@ -314,6 +315,7 @@ export async function postReviewComment({
   repo: string
   prNumber: number
   findings: LlmFinding[]
+  hiddenCount?: number
   truncated: boolean
   fixPrUrl?: string | null
 }): Promise<void> {
@@ -325,7 +327,7 @@ export async function postReviewComment({
       headers: githubHeaders(`Bearer ${token}`),
       body: JSON.stringify({
         event: 'COMMENT',
-        body: renderReviewBody(findings, truncated, fixPrUrl),
+        body: renderReviewBody(findings, truncated, fixPrUrl, hiddenCount),
       }),
     },
   )
@@ -350,16 +352,22 @@ function renderReviewBody(
   findings: LlmFinding[],
   truncated: boolean,
   fixPrUrl?: string | null,
+  hiddenCount = 0,
 ): string {
   const fixLine = fixPrUrl
     ? `\n\n**🔧 Suggested fixes:** [open the fix PR →](${fixPrUrl})`
     : ''
+  const hiddenLine =
+    hiddenCount > 0
+      ? `\n_${hiddenCount} lower-severity finding${hiddenCount === 1 ? '' : 's'} hidden by this workspace's minimum severity setting._`
+      : ''
 
   if (findings.length === 0) {
     return [
       reviewHeader(),
       '',
       'No blocking issues found in this diff. Nice work.',
+      ...(hiddenLine ? [hiddenLine] : []),
       truncated ? '\n_Note: the diff was large and reviewed in part._' : '',
     ]
       .join('\n')
@@ -393,6 +401,10 @@ function renderReviewBody(
     }
 
     lines.push('')
+  }
+
+  if (hiddenLine) {
+    lines.push(hiddenLine.trim())
   }
 
   if (truncated) {

@@ -2,6 +2,7 @@
 // accounting live in the shared client; this module owns the prompts, the
 // response schema, and the result shape.
 
+import { customInstructionsPrompt } from '../../lib/review-guidance'
 import { SEVERITIES } from '../../lib/severity'
 import type { Severity } from '../../lib/severity'
 import { getOptionalEnv } from '../env'
@@ -25,6 +26,7 @@ export type ReviewDiffInput = {
   prTitle: string
   diff: string
   reviewSecurity: boolean
+  customInstructions?: string | null
 }
 
 export type ReviewDiffResult = {
@@ -98,7 +100,10 @@ function systemPrompt(input: ReviewDiffInput) {
       : 'Do not report security-specific findings for this workspace.',
     'Do NOT report pure style, formatting, or naming nitpicks. If the diff is clean, return an empty findings array.',
     'For every finding: set filePath to the file in the diff, lineNumber to the new-file line when identifiable (else null), and give a short actionable suggestion.',
-  ].join('\n')
+    customInstructionsPrompt(input.customInstructions ?? null),
+  ]
+    .filter(Boolean)
+    .join('\n')
 }
 
 function userPrompt(input: ReviewDiffInput) {

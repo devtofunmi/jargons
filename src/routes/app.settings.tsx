@@ -4,6 +4,7 @@ import {
   GitPullRequest,
   KeyRound,
   LoaderCircle,
+  MessageSquareText,
   ScanSearch,
   ShieldCheck,
   Trash2,
@@ -15,6 +16,13 @@ import { useEffect, useState } from 'react'
 
 import { GitHubAppInstallButton } from '../components/github-app-install-button'
 import { AppPageSkeleton } from '../components/skeletons'
+import { PAID_PLANS } from '../lib/plans'
+import type { Plan } from '../lib/plans'
+import {
+  MAX_CUSTOM_INSTRUCTIONS_LENGTH,
+  MIN_SEVERITY_OPTIONS,
+} from '../lib/review-guidance'
+import type { ReviewGuidance } from '../lib/review-guidance'
 import { deleteAccount } from '../server/account'
 import {
   getWorkspaceSettings,
@@ -72,6 +80,8 @@ function WorkspaceSettingsPage() {
   const settings = Route.useLoaderData()
   const [preferences, setPreferences] = useState(settings.preferences)
   const [savedPreferences, setSavedPreferences] = useState(settings.preferences)
+  const [guidance, setGuidance] = useState(settings.guidance)
+  const [savedGuidance, setSavedGuidance] = useState(settings.guidance)
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
@@ -120,14 +130,23 @@ function WorkspaceSettingsPage() {
   const isDirty =
     preferences.reviewPullRequests !== savedPreferences.reviewPullRequests ||
     preferences.reviewSecurity !== savedPreferences.reviewSecurity ||
-    preferences.reviewCodebaseScans !== savedPreferences.reviewCodebaseScans
+    preferences.reviewCodebaseScans !== savedPreferences.reviewCodebaseScans ||
+    (guidance.customInstructions ?? '') !==
+      (savedGuidance.customInstructions ?? '') ||
+    guidance.minSeverity !== savedGuidance.minSeverity
 
   async function saveChanges() {
     setSaveState('saving')
 
     try {
-      await updateReviewPreferences({ data: preferences })
+      await updateReviewPreferences({
+        data: {
+          ...preferences,
+          ...(settings.canCustomizeReviews ? { guidance } : {}),
+        },
+      })
       setSavedPreferences(preferences)
+      setSavedGuidance(guidance)
       setSaveState('saved')
     } catch {
       setSaveState('error')
@@ -203,6 +222,7 @@ function WorkspaceSettingsPage() {
               label="Connected repositories"
               value={String(settings.repositoryCount)}
             />
+            <PlanField {...settings.billing} />
           </div>
         </article>
 
@@ -264,6 +284,16 @@ function WorkspaceSettingsPage() {
           </div>
         </article>
       </div>
+
+      {settings.canCustomizeReviews ? (
+        <CustomInstructionsCard
+          guidance={guidance}
+          onChange={(next) => {
+            setGuidance(next)
+            setSaveState('idle')
+          }}
+        />
+      ) : null}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <article className="app-card p-5 sm:p-6">
@@ -483,6 +513,131 @@ function WorkspaceSettingsPage() {
         </div>
       ) : null}
     </section>
+  )
+}
+
+function CustomInstructionsCard({
+  guidance,
+  onChange,
+}: {
+  guidance: ReviewGuidance
+  onChange: (next: ReviewGuidance) => void
+}) {
+  const text = guidance.customInstructions ?? ''
+
+  return (
+    <article className="app-card mt-6 p-5 sm:p-6">
+      <div className="flex items-center gap-2">
+        <MessageSquareText className="size-4 text-amber-300" />
+        <h2 className="text-lg font-medium tracking-[-0.03em]">
+          Custom review instructions
+        </h2>
+      </div>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
+        Tell Jargons what matters to your team, and choose the lowest severity
+        worth reporting. Applies to pull request reviews and codebase scans.
+      </p>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <label className="flex flex-col">
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-700">
+            Instructions
+          </span>
+          <textarea
+            value={text}
+            maxLength={MAX_CUSTOM_INSTRUCTIONS_LENGTH}
+            rows={5}
+            placeholder="e.g. Don't flag minor style issues or missing comments. We use Zod for validation, so don't suggest manual checks."
+            onChange={(event) =>
+              onChange({ ...guidance, customInstructions: event.target.value })
+            }
+            className="mt-2 block min-h-40 w-full flex-1 resize-none rounded-2xl border border-white/[0.1] bg-[#09090b] px-4 py-3 text-sm leading-6 text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-amber-300/40"
+          />
+          <span className="mt-2 block text-right font-mono text-[10px] text-zinc-700">
+            {text.length}/{MAX_CUSTOM_INSTRUCTIONS_LENGTH}
+          </span>
+        </label>
+
+        <div>
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-700">
+            Report findings
+          </span>
+          <div
+            role="radiogroup"
+            aria-label="Minimum severity to report"
+            className="mt-2 grid gap-2"
+          >
+            {MIN_SEVERITY_OPTIONS.map((option) => {
+              const selected = guidance.minSeverity === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() =>
+                    onChange({ ...guidance, minSeverity: option.value })
+                  }
+                  className={`flex items-center justify-between rounded-2xl border px-4 py-2.5 text-left text-sm transition-colors ${
+                    selected
+                      ? 'border-amber-300/40 bg-amber-300/[0.08] text-zinc-100'
+                      : 'border-white/[0.07] bg-[#09090b] text-zinc-400 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {option.label}
+                  {selected ? (
+                    <Check className="size-4 text-amber-300" />
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function PlanField({
+  plan,
+  runsUsed,
+  limit,
+}: {
+  plan: Plan
+  runsUsed: number
+  limit: number
+}) {
+  const paid = plan !== 'free'
+  const name = paid ? PAID_PLANS[plan].name : 'Free'
+
+  return (
+    <div className="block">
+      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-700">
+        Current plan
+      </span>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#09090b] px-4 py-3">
+        <span className="flex items-center gap-3">
+          <span
+            className={`rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.1em] ${
+              paid
+                ? 'border-amber-300/30 bg-amber-300/[0.1] text-amber-300'
+                : 'border-white/[0.1] bg-white/[0.03] text-zinc-400'
+            }`}
+          >
+            {name}
+          </span>
+          <span className="text-sm text-zinc-400">
+            {runsUsed}/{limit} runs used this month
+          </span>
+        </span>
+        <Link
+          className="text-sm text-amber-300 hover:text-amber-200"
+          to="/pricing"
+        >
+          {paid ? 'View plans' : 'Upgrade'}
+        </Link>
+      </div>
+    </div>
   )
 }
 
