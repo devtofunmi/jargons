@@ -1,0 +1,1 @@
+ALTER TABLE "workspaces" ADD COLUMN "custom_reviews_granted" boolean DEFAULT false NOT NULL;
