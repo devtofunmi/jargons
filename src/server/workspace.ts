@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { loadDb } from '../db/load'
-import { isPaidPlan } from '../lib/plans'
 import type { Plan } from '../lib/plans'
 import {
   DEFAULT_REVIEW_GUIDANCE,
@@ -120,7 +119,7 @@ export const getWorkspaceSettings = createServerFn({ method: 'GET' }).handler(
             minSeverity: settingsRow.minSeverity,
           }
         : DEFAULT_REVIEW_GUIDANCE,
-      canCustomizeReviews: isPaidPlan(billing.plan),
+      canCustomizeReviews: billing.canCustomizeReviews,
       billing: {
         plan: billing.plan,
         runsUsed: billing.runsUsed,
@@ -164,7 +163,7 @@ export const updateReviewPreferences = createServerFn({ method: 'POST' })
     // Review guidance is a paid feature: free workspaces can't change it.
     if (guidance) {
       const billing = await getWorkspaceBilling(workspaceId)
-      if (!isPaidPlan(billing.plan)) {
+      if (!billing.canCustomizeReviews) {
         throw new Error('Custom review instructions need a paid plan.')
       }
     }
